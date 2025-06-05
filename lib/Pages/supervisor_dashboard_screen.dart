@@ -1,807 +1,786 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/work_entry.dart';
-import '../utils/app_colors.dart';
+import 'package:fl_chart/fl_chart.dart';
 
-class SupervisorDashboardScreen extends StatefulWidget {
-  const SupervisorDashboardScreen({super.key});
+// Data Models
+class InternData {
+  final String id;
+  final String name;
+  final String email;
+  final double totalHours;
+  final double averageHours;
+  final DateTime lastUpdated;
+  final List<TimeEntry> entries;
 
-  @override
-  State<SupervisorDashboardScreen> createState() => _SupervisorDashboardScreenState();
+  InternData({
+    required this.id,
+    required this.name,
+    required this.email,
+    required this.totalHours,
+    required this.averageHours,
+    required this.lastUpdated,
+    required this.entries,
+  });
+
+  factory InternData.fromFirestore(DocumentSnapshot doc, List<TimeEntry> entries) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    double total = entries.fold(0.0, (sum, entry) => sum + entry.hours);
+    double average = entries.isNotEmpty ? total / entries.length : 0.0;
+    DateTime lastUpdate = entries.isNotEmpty 
+        ? entries.map((e) => e.date).reduce((a, b) => a.isAfter(b) ? a : b)
+        : DateTime.now();
+
+    return InternData(
+      id: doc.id,
+      name: data['name'] ?? 'Unknown',
+      email: data['email'] ?? '',
+      totalHours: total,
+      averageHours: average,
+      lastUpdated: lastUpdate,
+      entries: entries,
+    );
+  }
 }
 
-class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> 
-    with TickerProviderStateMixin {
-  String? selectedInternId;
-  String? selectedInternName;
-  List<Map<String, dynamic>> allInterns = [];
-  List<WorkEntry> selectedInternEntries = [];
+class TimeEntry {
+  final String id;
+  final DateTime date;
+  final double hours;
+  final String description;
+
+  TimeEntry({
+    required this.id,
+    required this.date,
+    required this.hours,
+    required this.description,
+  });
+
+  factory TimeEntry.fromFirestore(DocumentSnapshot doc) {
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    return TimeEntry(
+      id: doc.id,
+      date: (data['date'] as Timestamp).toDate(),
+      hours: (data['hours'] ?? 0.0).toDouble(),
+      description: data['description'] ?? '',
+    );
+  }
+}
+
+// Firebase Service
+class FirebaseService {
+  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  static Future<List<InternData>> loadAllInterns() async {
+    try {
+      QuerySnapshot usersSnapshot = await _firestore.collection('users').get();
+      List<InternData> interns = [];
+
+      for (DocumentSnapshot userDoc in usersSnapshot.docs) {
+        List<TimeEntry> entries = await fetchEntriesForUser(userDoc.id);
+        InternData intern = InternData.fromFirestore(userDoc, entries);
+        interns.add(intern);
+      }
+
+      interns.sort((a, b) => b.totalHours.compareTo(a.totalHours));
+      return interns;
+    } catch (e) {
+      print('Error loading interns: $e');
+      return _getMockData(); // Return mock data if Firebase fails
+    }
+  }
+
+  static Future<List<TimeEntry>> fetchEntriesForUser(String userId) async {
+    try {
+      QuerySnapshot entriesSnapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('timeEntries')
+          .orderBy('date', descending: true)
+          .get();
+
+      return entriesSnapshot.docs
+          .map((doc) => TimeEntry.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      print('Error fetching entries for user $userId: $e');
+      return [];
+    }
+  }
+
+  // Mock data for testing
+  static List<InternData> _getMockData() {
+    List<TimeEntry> mockEntries1 = [
+      TimeEntry(id: '1', date: DateTime.now().subtract(Duration(days: 1)), hours: 8.0, description: 'Project work'),
+      TimeEntry(id: '2', date: DateTime.now().subtract(Duration(days: 2)), hours: 7.5, description: 'Meeting'),
+      TimeEntry(id: '3', date: DateTime.now().subtract(Duration(days: 3)), hours: 6.0, description: 'Research'),
+    ];
+    
+    List<TimeEntry> mockEntries2 = [
+      TimeEntry(id: '4', date: DateTime.now().subtract(Duration(days: 1)), hours: 6.5, description: 'Development'),
+      TimeEntry(id: '5', date: DateTime.now().subtract(Duration(days: 2)), hours: 7.0, description: 'Testing'),
+    ];
+
+    List<TimeEntry> mockEntries3 = [
+      TimeEntry(id: '6', date: DateTime.now().subtract(Duration(days: 1)), hours: 9.0, description: 'Design work'),
+      TimeEntry(id: '7', date: DateTime.now().subtract(Duration(days: 2)), hours: 8.5, description: 'Client meeting'),
+      TimeEntry(id: '8', date: DateTime.now().subtract(Duration(days: 3)), hours: 7.0, description: 'Documentation'),
+    ];
+
+    return [
+      InternData(
+        id: '1',
+        name: 'Alice Johnson',
+        email: 'alice@company.com',
+        totalHours: 21.5,
+        averageHours: 7.17,
+        lastUpdated: DateTime.now().subtract(Duration(days: 1)),
+        entries: mockEntries1,
+      ),
+      InternData(
+        id: '2',
+        name: 'Bob Smith',
+        email: 'bob@company.com',
+        totalHours: 13.5,
+        averageHours: 6.75,
+        lastUpdated: DateTime.now().subtract(Duration(days: 1)),
+        entries: mockEntries2,
+      ),
+      InternData(
+        id: '3',
+        name: 'Carol Davis',
+        email: 'carol@company.com',
+        totalHours: 24.5,
+        averageHours: 8.17,
+        lastUpdated: DateTime.now().subtract(Duration(days: 1)),
+        entries: mockEntries3,
+      ),
+    ];
+  }
+}
+
+// Custom Dropdown Widget
+class DropdownSearch extends StatefulWidget {
+  final List<InternData> items;
+  final InternData? selectedItem;
+  final Function(InternData?) onChanged;
+  final String hint;
+
+  const DropdownSearch({
+    Key? key,
+    required this.items,
+    this.selectedItem,
+    required this.onChanged,
+    this.hint = 'Select an intern',
+  }) : super(key: key);
+
+  @override
+  _DropdownSearchState createState() => _DropdownSearchState();
+}
+
+class _DropdownSearchState extends State<DropdownSearch> {
+  bool isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade50, Colors.purple.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => isExpanded = !isExpanded),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(Icons.person_search, color: Colors.blue.shade600),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.selectedItem?.name ?? widget.hint,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: widget.selectedItem != null 
+                            ? Colors.blue.shade800 
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
+                    color: Colors.blue.shade600,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isExpanded) ...[
+            Divider(height: 1, color: Colors.blue.shade200),
+            Container(
+              constraints: BoxConstraints(maxHeight: 200),
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: widget.items.length,
+                itemBuilder: (context, index) {
+                  final item = widget.items[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.shade100,
+                      child: Text(
+                        item.name.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          color: Colors.blue.shade800,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      item.name,
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(
+                      '${item.totalHours.toStringAsFixed(1)} hours total',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                    onTap: () {
+                      widget.onChanged(item);
+                      setState(() => isExpanded = false);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// Stats Card Widget
+class StatsCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const StatsCard({
+    Key? key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Progress Chart Widget
+class ProgressChart extends StatelessWidget {
+  final InternData internData;
+
+  const ProgressChart({Key? key, required this.internData}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    List<FlSpot> spots = [];
+    List<TimeEntry> sortedEntries = List.from(internData.entries)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    double cumulativeHours = 0;
+    for (int i = 0; i < sortedEntries.length; i++) {
+      cumulativeHours += sortedEntries[i].hours;
+      spots.add(FlSpot(i.toDouble(), cumulativeHours));
+    }
+
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade50, Colors.purple.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.1),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Progress Timeline',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade800,
+            ),
+          ),
+          SizedBox(height: 20),
+          Container(
+            height: 200,
+            child: spots.isEmpty
+                ? Center(
+                    child: Text(
+                      'No data available',
+                      style: TextStyle(color: Colors.grey.shade600),
+                    ),
+                  )
+                : LineChart(
+                    LineChartData(
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          color: Colors.blue.shade400,
+                          barWidth: 4,
+                          dotData: FlDotData(show: true),
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: Colors.blue.shade400.withOpacity(0.3),
+                          ),
+                        ),
+                      ],
+                      titlesData: FlTitlesData(
+                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              if (value.toInt() >= 0 && value.toInt() < sortedEntries.length) {
+                                return Text(
+                                  '${sortedEntries[value.toInt()].date.day}/${sortedEntries[value.toInt()].date.month}',
+                                  style: TextStyle(fontSize: 10),
+                                );
+                              }
+                              return Text('');
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              return Text('${value.toInt()}h', style: TextStyle(fontSize: 10));
+                            },
+                          ),
+                        ),
+                      ),
+                      gridData: FlGridData(show: true),
+                      borderData: FlBorderData(show: true),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Main Supervisor Dashboard
+class SupervisorDashboardScreen extends StatefulWidget {
+  const SupervisorDashboardScreen({Key? key}) : super(key: key);
+
+  @override
+  _SupervisorDashboardScreenState createState() => _SupervisorDashboardScreenState();
+}
+
+class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
+  List<InternData> allInterns = [];
+  InternData? selectedIntern;
   bool isLoading = true;
-  
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOut));
+    loadDashboardData();
+  }
+
+  Future<void> loadDashboardData() async {
+    setState(() => isLoading = true);
     
-    _loadAllInterns();
-    _animationController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadAllInterns() async {
     try {
-      setState(() => isLoading = true);
-      
-      // Get all unique intern IDs and names from work entries
-      final snapshot = await FirebaseFirestore.instance
-          .collection('work_entries')
-          .get();
-      
-      final Set<String> seenInterns = {};
-      final List<Map<String, dynamic>> internsList = [];
-      
-      for (var doc in snapshot.docs) {
-        final data = doc.data();
-        final internId = data['internId'] as String?;
-        final internName = data['internName'] as String?;
-        
-        if (internId != null && internName != null && !seenInterns.contains(internId)) {
-          seenInterns.add(internId);
-          internsList.add({
-            'id': internId,
-            'name': internName,
-          });
-        }
-      }
+      List<InternData> interns = await FirebaseService.loadAllInterns();
       
       setState(() {
-        allInterns = internsList;
+        allInterns = interns;
+        if (interns.isNotEmpty && selectedIntern == null) {
+          selectedIntern = interns.first;
+        }
         isLoading = false;
       });
     } catch (e) {
+      print('Error loading dashboard data: $e');
       setState(() => isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading interns: $e')),
-        );
-      }
     }
-  }
-
-  Future<void> _loadInternData(String internId) async {
-    try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('work_entries')
-          .where('internId', isEqualTo: internId)
-          .orderBy('date')
-          .get();
-      
-      final entries = snapshot.docs
-          .map((doc) => WorkEntry.fromMap(doc.data(), doc.id))
-          .toList();
-      
-      setState(() {
-        selectedInternEntries = entries;
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading intern data: $e')),
-        );
-      }
-    }
-  }
-
-  Map<String, dynamic> _calculateStats(List<WorkEntry> entries) {
-    if (entries.isEmpty) {
-      return {
-        'totalHours': 0.0,
-        'averageHours': 0.0,
-        'lastUpdated': 'No entries',
-        'totalDays': 0,
-      };
-    }
-    
-    final totalHours = entries.fold(0.0, (sum, entry) => sum + entry.hoursWorked);
-    final averageHours = totalHours / entries.length;
-    final lastEntry = entries.last;
-    
-    return {
-      'totalHours': totalHours,
-      'averageHours': averageHours,
-      'lastUpdated': '${lastEntry.date.day}/${lastEntry.date.month}/${lastEntry.date.year}',
-      'totalDays': entries.length,
-    };
-  }
-
-  Future<List<Map<String, dynamic>>> _getAllInternsStats() async {
-    final List<Map<String, dynamic>> stats = [];
-    
-    for (var intern in allInterns) {
-      try {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('work_entries')
-            .where('internId', isEqualTo: intern['id'])
-            .get();
-        
-        final entries = snapshot.docs
-            .map((doc) => WorkEntry.fromMap(doc.data(), doc.id))
-            .toList();
-        
-        final internStats = _calculateStats(entries);
-        stats.add({
-          'name': intern['name'],
-          'id': intern['id'],
-          ...internStats,
-        });
-      } catch (e) {
-        // Continue with other interns if one fails
-      }
-    }
-    
-    // Sort by total hours descending
-    stats.sort((a, b) => (b['totalHours'] as double).compareTo(a['totalHours'] as double));
-    return stats;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primaryBlue.withOpacity(0.1),
-              AppColors.accentPurple.withOpacity(0.1),
-              Colors.white,
-            ],
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: Text('Supervisor Dashboard', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.indigo.shade600,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: loadDashboardData,
+            icon: Icon(Icons.refresh, color: Colors.white),
           ),
-        ),
-        child: SafeArea(
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: CustomScrollView(
-                      slivers: [
-                        _buildAppBar(),
-                        _buildInternSelector(),
-                        if (selectedInternId != null) ...[
-                          _buildOverviewCards(),
-                          _buildChartsSection(),
-                        ],
-                        _buildComparisonSection(),
+        ],
+      ),
+      body: isLoading
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading Dashboard...'),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: loadDashboardData,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Summary Statistics
+                    Text(
+                      'Overview Statistics',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.2,
+                      children: [
+                        StatsCard(
+                          title: 'Total Interns',
+                          value: '${allInterns.length}',
+                          icon: Icons.people,
+                          color: Colors.blue.shade600,
+                        ),
+                        StatsCard(
+                          title: 'Total Hours',
+                          value: '${allInterns.fold(0.0, (sum, intern) => sum + intern.totalHours).toStringAsFixed(0)}',
+                          icon: Icons.access_time,
+                          color: Colors.green.shade600,
+                        ),
+                        StatsCard(
+                          title: 'Average Hours',
+                          value: allInterns.isNotEmpty 
+                              ? '${(allInterns.fold(0.0, (sum, intern) => sum + intern.totalHours) / allInterns.length).toStringAsFixed(1)}'
+                              : '0',
+                          icon: Icons.trending_up,
+                          color: Colors.orange.shade600,
+                        ),
+                        StatsCard(
+                          title: 'Active Interns',
+                          value: '${allInterns.where((intern) => intern.lastUpdated.isAfter(DateTime.now().subtract(Duration(days: 7)))).length}',
+                          icon: Icons.schedule,
+                          color: Colors.purple.shade600,
+                        ),
                       ],
                     ),
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAppBar() {
-    return SliverAppBar(
-      expandedHeight: 120,
-      floating: false,
-      pinned: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [AppColors.primaryBlue, AppColors.accentPurple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(height: 40),
-                Text(
-                  '👨‍💼 Supervisor Dashboard',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  'Monitor intern progress and performance',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInternSelector() {
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '👥 Select Intern',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primaryBlue.withOpacity(0.3)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedInternId,
-                  hint: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Text('Choose an intern to view details'),
-                  ),
-                  isExpanded: true,
-                  items: allInterns.map((intern) {
-                    return DropdownMenuItem<String>(
-                      value: intern['id'],
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(intern['name']),
+                    
+                    SizedBox(height: 32),
+                    
+                    // Intern Selection
+                    Text(
+                      'Select Intern',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
                       ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        selectedInternId = value;
-                        selectedInternName = allInterns
-                            .firstWhere((intern) => intern['id'] == value)['name'];
-                      });
-                      _loadInternData(value);
-                    }
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOverviewCards() {
-    final stats = _calculateStats(selectedInternEntries);
-    
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(left: 4, bottom: 16),
-              child: Text(
-                '📊 Overview for $selectedInternName',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                _buildStatCard(
-                  icon: '⏰',
-                  title: 'Total Hours',
-                  value: '${stats['totalHours'].toStringAsFixed(1)}h',
-                  color: AppColors.primaryBlue,
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  icon: '📈',
-                  title: 'Average Hours',
-                  value: '${stats['averageHours'].toStringAsFixed(1)}h',
-                  color: AppColors.accentGreen,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildStatCard(
-                  icon: '📅',
-                  title: 'Total Days',
-                  value: '${stats['totalDays']}',
-                  color: AppColors.accentPurple,
-                ),
-                const SizedBox(width: 12),
-                _buildStatCard(
-                  icon: '🕒',
-                  title: 'Last Updated',
-                  value: stats['lastUpdated'],
-                  color: AppColors.accentOrange,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required String icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(icon, style: const TextStyle(fontSize: 20)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildChartsSection() {
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '📈 Progress Chart',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 250,
-              child: selectedInternEntries.isEmpty
-                  ? const Center(child: Text('No data available'))
-                  : LineChart(
-                      LineChartData(
-                        gridData: FlGridData(
-                          show: true,
-                          drawVerticalLine: true,
-                          horizontalInterval: 2,
-                          verticalInterval: 1,
-                          getDrawingHorizontalLine: (value) {
-                            return FlLine(
-                              color: Colors.grey.withOpacity(0.3),
-                              strokeWidth: 1,
-                            );
-                          },
-                          getDrawingVerticalLine: (value) {
-                            return FlLine(
-                              color: Colors.grey.withOpacity(0.3),
-                              strokeWidth: 1,
-                            );
-                          },
+                    SizedBox(height: 16),
+                    DropdownSearch(
+                      items: allInterns,
+                      selectedItem: selectedIntern,
+                      onChanged: (InternData? intern) {
+                        setState(() {
+                          selectedIntern = intern;
+                        });
+                      },
+                    ),
+                    
+                    SizedBox(height: 32),
+                    
+                    // Selected Intern Details
+                    if (selectedIntern != null) ...[
+                      Text(
+                        'Intern Details',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
                         ),
-                        titlesData: FlTitlesData(
-                          show: true,
-                          rightTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          topTitles: const AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          bottomTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              reservedSize: 30,
-                              interval: 1,
-                              getTitlesWidget: (double value, TitleMeta meta) {
-                                if (value.toInt() < selectedInternEntries.length) {
-                                  final entry = selectedInternEntries[value.toInt()];
-                                  return SideTitleWidget(
-                                    axisSide: meta.axisSide,
-                                    child: Text(
-                                      '${entry.date.day}/${entry.date.month}',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 10,
-                                      ),
+                      ),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.blue.shade100,
+                                  child: Text(
+                                    selectedIntern!.name.substring(0, 1).toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade800,
                                     ),
-                                  );
-                                }
-                                return Container();
-                              },
-                            ),
-                          ),
-                          leftTitles: AxisTitles(
-                            sideTitles: SideTitles(
-                              showTitles: true,
-                              interval: 2,
-                              getTitlesWidget: (double value, TitleMeta meta) {
-                                return Text(
-                                  '${value.toInt()}h',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 10,
                                   ),
-                                );
-                              },
-                              reservedSize: 32,
-                            ),
-                          ),
-                        ),
-                        borderData: FlBorderData(
-                          show: true,
-                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                        ),                        minX: 0,
-                        maxX: (selectedInternEntries.length - 1).toDouble(),
-                        minY: 0,
-                        maxY: selectedInternEntries.isEmpty 
-                            ? 10 
-                            : selectedInternEntries
-                                .map((e) => e.hoursWorked)
-                                .reduce((a, b) => a > b ? a : b) + 2,
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: selectedInternEntries
-                                .asMap()
-                                .entries
-                                .map((entry) => FlSpot(
-                                    entry.key.toDouble(), entry.value.hoursWorked))
-                                .toList(),
-                            isCurved: true,
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primaryBlue,
-                                AppColors.accentPurple,
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        selectedIntern!.name,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        selectedIntern!.email,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
-                            barWidth: 3,
-                            isStrokeCapRound: true,
-                            dotData: FlDotData(
-                              show: true,
-                              getDotPainter: (spot, percent, barData, index) {
-                                return FlDotCirclePainter(
-                                  radius: 4,
-                                  color: AppColors.primaryBlue,
-                                  strokeWidth: 2,
-                                  strokeColor: Colors.white,
-                                );
-                              },
+                            SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Column(
+                                  children: [
+                                    Text(
+                                      '${selectedIntern!.totalHours.toStringAsFixed(1)}h',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue.shade600,
+                                      ),
+                                    ),
+                                    Text('Total Hours'),
+                                  ],
+                                ),
+                                Column(
+                                  children: [
+                                    Text(
+                                      '${selectedIntern!.averageHours.toStringAsFixed(1)}h',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green.shade600,
+                                      ),
+                                    ),
+                                    Text('Average'),
+                                  ],
+                                ),
+                                Column(
+                                  children: [
+                                    Text(
+                                      '${selectedIntern!.lastUpdated.day}/${selectedIntern!.lastUpdated.month}',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.orange.shade600,
+                                      ),
+                                    ),
+                                    Text('Last Updated'),
+                                  ],
+                                ),
+                              ],
                             ),
-                            belowBarData: BarAreaData(
-                              show: true,
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  AppColors.primaryBlue.withOpacity(0.3),
-                                  AppColors.primaryBlue.withOpacity(0.1),
-                                ],
-                              ),
-                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      SizedBox(height: 24),
+                      ProgressChart(internData: selectedIntern!),
+                    ],
+                    
+                    SizedBox(height: 32),
+                    
+                    // Comparison Table
+                    Text(
+                      'All Interns Comparison',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: [
+                            DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Total Hours', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Average', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Last Updated', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: allInterns.map((intern) {
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor: Colors.blue.shade100,
+                                        child: Text(
+                                          intern.name.substring(0, 1).toUpperCase(),
+                                          style: TextStyle(
+                                            color: Colors.blue.shade800,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(intern.name),
+                                    ],
+                                  ),
+                                ),
+                                DataCell(Text('${intern.totalHours.toStringAsFixed(1)}h')),
+                                DataCell(Text('${intern.averageHours.toStringAsFixed(1)}h')),
+                                DataCell(Text('${intern.lastUpdated.day}/${intern.lastUpdated.month}')),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
                     ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComparisonSection() {
-    return SliverToBoxAdapter(
-      child: Container(
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '🏆 All Interns Comparison',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                    
+                    SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: _getAllInternsStats(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No data available'));
-                }
-                
-                final stats = snapshot.data!;
-                
-                return Column(
-                  children: [
-                    // Summary stats
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildSummaryItem(
-                            '👥',
-                            'Total Interns',
-                            '${stats.length}',
-                          ),
-                          _buildSummaryItem(
-                            '⏰',
-                            'Total Hours',
-                            '${stats.fold(0.0, (sum, intern) => sum + (intern['totalHours'] as double)).toStringAsFixed(1)}h',
-                          ),
-                          _buildSummaryItem(
-                            '📊',
-                            'Avg Hours/Intern',
-                            '${(stats.fold(0.0, (sum, intern) => sum + (intern['totalHours'] as double)) / stats.length).toStringAsFixed(1)}h',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Comparison table
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: DataTable(
-                        headingRowColor: MaterialStateProperty.all(
-                          AppColors.primaryBlue.withOpacity(0.1),
-                        ),
-                        columns: const [
-                          DataColumn(
-                            label: Text(
-                              'Rank',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Intern Name',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Total Hours',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          DataColumn(
-                            label: Text(
-                              'Avg Hours',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                        rows: stats.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final intern = entry.value;
-                          final isSelected = intern['id'] == selectedInternId;
-                          
-                          return DataRow(
-                            color: MaterialStateProperty.all(
-                              isSelected 
-                                  ? AppColors.accentGreen.withOpacity(0.1)
-                                  : null,
-                            ),
-                            cells: [
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _getRankColor(index),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '#${index + 1}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Text(
-                                  intern['name'],
-                                  style: TextStyle(
-                                    fontWeight: isSelected 
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected 
-                                        ? AppColors.accentGreen
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Text('${intern['totalHours'].toStringAsFixed(1)}h'),
-                              ),
-                              DataCell(
-                                Text('${intern['averageHours'].toStringAsFixed(1)}h'),
-                              ),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
     );
-  }
-
-  Widget _buildSummaryItem(String icon, String title, String value) {
-    return Column(
-      children: [
-        Text(icon, style: const TextStyle(fontSize: 24)),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Color _getRankColor(int rank) {
-    switch (rank) {
-      case 0:
-        return Colors.amber; // Gold
-      case 1:
-        return Colors.grey; // Silver
-      case 2:
-        return Colors.brown; // Bronze
-      default:
-        return AppColors.primaryBlue;
-    }
   }
 }

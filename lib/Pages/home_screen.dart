@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:math' as math;
 import 'add_work_screen.dart';
+import 'personal_summary_screen.dart';
+import 'supervisor_dashboard_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -278,6 +279,7 @@ class _HomePageState extends State<HomePage>
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
+
                     ),                  ),
                 ],
               ),
@@ -522,7 +524,6 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
-
   void _handleButtonTap(String buttonTitle) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -533,18 +534,25 @@ class _HomePageState extends State<HomePage>
           borderRadius: BorderRadius.circular(10),
         ),
       ),
-    );
-    
-    // TODO: Navigate to respective pages
-    switch (buttonTitle) {
+    );    switch (buttonTitle) {
       case 'Add Work Entry':
         Navigator.push(context, MaterialPageRoute(builder: (context) => const AddWorkEntryPage()));
         break;
       case 'My Summary':
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => SummaryPage()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PersonalSummaryScreen(userId: userName),
+          ),
+        );
         break;
       case 'Supervisor Dashboard':
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => SupervisorDashboard()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const SupervisorDashboardScreen(),
+          ),
+        );
         break;
     }
   }
