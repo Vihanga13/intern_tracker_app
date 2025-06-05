@@ -1,152 +1,286 @@
 import 'package:flutter/material.dart';
-import './add_work_screen.dart';
-import './personal_summary_screen.dart';
-import './supervisor_dashboard_screen.dart';
+import 'package:flutter/services.dart';
 import 'dart:math' as math;
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
-  late AnimationController _backgroundController;
-  late AnimationController _cardsController;
-  late AnimationController _fabController;
-  late Animation<double> _backgroundAnimation;
-  late Animation<double> _fabAnimation;
-  late List<Animation<double>> _cardAnimations;
+class _HomePageState extends State<HomePage>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _scaleController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  // Hardcoded user data
+  final String userName = "Vihanga";
+  final String userRole = "Software Engineering Intern";
+  final String profileImageUrl = "https://via.placeholder.com/100";
+
+  // Daily quotes
+  final List<String> dailyQuotes = [
+    "Every expert was once a beginner. 🌟",
+    "Progress, not perfection. 💪",
+    "Your potential is endless. 🚀",
+    "Great things take time. ⏰",
+    "Believe in your journey. ✨"
+  ];
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
+    _startAnimations();
   }
 
   void _initializeAnimations() {
-    _backgroundController = AnimationController(
-      duration: const Duration(seconds: 15),
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
-    )..repeat();
-
-    _cardsController = AnimationController(
+    );
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
-    _fabController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+  }
 
-    _backgroundAnimation = Tween<double>(
-      begin: 0.0,
-      end: 2 * math.pi,
-    ).animate(_backgroundController);
-
-    _fabAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fabController,
-      curve: Curves.elasticOut,
-    ));
-
-    // Create staggered animations for cards
-    _cardAnimations = List.generate(3, (index) {
-      final delay = index * 0.2;
-      return Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(
-          parent: _cardsController,
-          curve: Interval(
-            delay,
-            delay + 0.6,
-            curve: Curves.easeOutBack,
-          ),
-        ),
-      );
-    });
-
-    _cardsController.forward();
-    _fabController.forward();
+  void _startAnimations() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    _fadeController.forward();
+    await Future.delayed(const Duration(milliseconds: 200));
+    _scaleController.forward();
+    await Future.delayed(const Duration(milliseconds: 100));
+    _slideController.forward();
   }
 
   @override
   void dispose() {
-    _backgroundController.dispose();
-    _cardsController.dispose();
-    _fabController.dispose();
+    _fadeController.dispose();
+    _scaleController.dispose();
+    _slideController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          _buildAnimatedBackground(),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildAppBar(),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 20),
-                        _buildWelcomeText(),
-                        const SizedBox(height: 40),
-                        _buildNavigationCards(),
-                      ],
-                    ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF667eea),
+              Color(0xFF764ba2),
+              Color(0xFF6B73FF),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildAppBar(),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
+                      _buildUserInfoCard(),
+                      const SizedBox(height: 30),
+                      _buildActionButtons(),
+                      const SizedBox(height: 30),
+                      _buildBottomSection(),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: ScaleTransition(
-        scale: _fabAnimation,
-        child: FloatingActionButton.extended(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddWorkScreen(userId: "user123")),
-          ),
-          backgroundColor: const Color(0xFF4CAF50),
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Quick Entry'),
-          elevation: 8,
         ),
       ),
     );
   }
 
-  Widget _buildAnimatedBackground() {
-    return AnimatedBuilder(
-      animation: _backgroundAnimation,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
+  Widget _buildAppBar() {
+    return SliverAppBar(
+      expandedHeight: 120,
+      floating: false,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: Colors.transparent,
+      flexibleSpace: FlexibleSpaceBar(
+        centerTitle: true,
+        title: AnimatedBuilder(
+          animation: _fadeAnimation,
+          builder: (context, child) {
+            return Opacity(
+              opacity: _fadeAnimation.value,
+              child: const Text(
+                'Intern Work Tracker',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 2),
+                      blurRadius: 4,
+                      color: Colors.black26,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+        // Removed subtitle as FlexibleSpaceBar does not support it
+        background: Container(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment(
-                math.cos(_backgroundAnimation.value),
-                math.sin(_backgroundAnimation.value),
-              ),
-              end: Alignment(
-                math.cos(_backgroundAnimation.value + math.pi),
-                math.sin(_backgroundAnimation.value + math.pi),
-              ),
-              colors: const [
-                Color(0xFF1E88E5), // Brighter blue
-                Color(0xFF0D47A1),
-                Color(0xFF311B92), // Deep purple
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF667eea),
+                Colors.transparent,
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserInfoCard() {
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white,
+                    Color(0xFFF8F9FF),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 70,
+                        height: 70,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF667eea).withOpacity(0.3),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 35,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 500),
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2D3748),
+                              ),
+                              child: Text('Hi, $userName 👋'),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              userRole,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      '🎯 Ready to track your amazing work today?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -154,33 +288,234 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
+  Widget _buildActionButtons() {
+    final buttons = [
+      {
+        'icon': Icons.add_circle_outline,
+        'title': 'Add Work Entry',
+        'subtitle': 'Log your daily tasks',
+        'color': const Color(0xFF4FC3F7),
+        'gradient': const LinearGradient(
+          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
+        ),
+      },
+      {
+        'icon': Icons.analytics_outlined,
+        'title': 'My Summary',
+        'subtitle': 'View your progress',
+        'color': const Color(0xFF66BB6A),
+        'gradient': const LinearGradient(
+          colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
+        ),
+      },
+      {
+        'icon': Icons.supervisor_account_outlined,
+        'title': 'Supervisor Dashboard',
+        'subtitle': 'Manage team tasks',
+        'color': const Color(0xFFFF7043),
+        'gradient': const LinearGradient(
+          colors: [Color(0xFFFF7043), Color(0xFFFF5722)],
+        ),
+      },
+    ];
+
+    return SlideTransition(
+      position: _slideAnimation,
+      child: Column(
+        children: buttons.asMap().entries.map((entry) {
+          final index = entry.key;
+          final button = entry.value;
+          
+          return AnimatedContainer(
+            duration: Duration(milliseconds: 300 + (index * 100)),
+            margin: const EdgeInsets.only(bottom: 16),
+            child: _buildActionButton(
+              icon: button['icon'] as IconData,
+              title: button['title'] as String,
+              subtitle: button['subtitle'] as String,
+              gradient: button['gradient'] as LinearGradient,
+              onTap: () => _handleButtonTap(button['title'] as String),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required LinearGradient gradient,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.colors.first.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.white.withOpacity(0.7),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomSection() {
+    final now = DateTime.now();
+    final quote = dailyQuotes[now.day % dailyQuotes.length];
+    
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.format_quote,
+                  color: Color(0xFF667eea),
+                  size: 30,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  quote,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFF2D3748),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-              ),
             ),
-            child: const Icon(
-              Icons.work_outline_rounded,
-              color: Colors.white,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 16),
-          const Text(
-            'Intern Work Tracker',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Today',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      '${now.day}/${now.month}/${now.year}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Version',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const Text(
+                      'v1.0.0',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -188,212 +523,29 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildWelcomeText() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Welcome Back!',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.2),
-                offset: const Offset(0, 4),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Track your progress and growth',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.white.withOpacity(0.8),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNavigationCards() {
-    final List<Map<String, dynamic>> cards = [
-      {
-        'title': 'Add Work Entry',
-        'subtitle': 'Record your daily tasks and achievements',
-        'icon': Icons.add_task_rounded,
-        'colors': [const Color(0xFF4CAF50), const Color(0xFF8BC34A)],
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddWorkEntryPage(userId: "user123")),
-        ),
-      },
-      {
-        'title': 'My Summary',
-        'subtitle': 'View your performance analytics',
-        'icon': Icons.analytics_rounded,
-        'colors': [const Color(0xFF2196F3), const Color(0xFF03A9F4)],
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const PersonalSummaryScreen(userId: "user123")),
-        ),
-      },
-      {
-        'title': 'Supervisor Dashboard',
-        'subtitle': 'Monitor team progress and performance',
-        'icon': Icons.supervisor_account_rounded,
-        'colors': [const Color(0xFF9C27B0), const Color(0xFFE91E63)],
-        'onTap': () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const SupervisorDashboardScreen(supervisorId: "supervisor123"),
-          ),
-        ),
-      },
-    ];
-
-    return Expanded(
-      child: ListView.builder(
-        itemCount: cards.length,
-        itemBuilder: (context, index) {
-          return AnimatedBuilder(
-            animation: _cardAnimations[index],
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(
-                  0,
-                  50 * (1 - _cardAnimations[index].value),
-                ),
-                child: Opacity(
-                  opacity: _cardAnimations[index].value,
-                  child: _buildNavigationCard(
-                    cards[index]['title'],
-                    cards[index]['subtitle'],
-                    cards[index]['icon'],
-                    cards[index]['colors'][0],
-                    cards[index]['colors'][1],
-                    cards[index]['onTap'],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildNavigationCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color startColor,
-    Color endColor,
-    VoidCallback onTap,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            height: 140,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [startColor, endColor],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: startColor.withOpacity(0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: -20,
-                  bottom: -20,
-                  child: Icon(
-                    icon,
-                    size: 120,
-                    color: Colors.white.withOpacity(0.1),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          icon,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+  void _handleButtonTap(String buttonTitle) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$buttonTitle tapped!'),
+        backgroundColor: const Color(0xFF667eea),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
       ),
     );
-  }
-}
-
-class AddWorkEntryPage extends StatelessWidget {
-  final String userId;
-
-  const AddWorkEntryPage({Key? key, required this.userId}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Work Entry'),
-      ),
-      body: Center(
-        child: Text('User ID: $userId'),
-      ),
-    );
+    
+    // TODO: Navigate to respective pages
+    switch (buttonTitle) {
+      case 'Add Work Entry':
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => AddWorkEntryPage()));
+        break;
+      case 'My Summary':
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => SummaryPage()));
+        break;
+      case 'Supervisor Dashboard':
+        // Navigator.push(context, MaterialPageRoute(builder: (context) => SupervisorDashboard()));
+        break;
+    }
   }
 }

@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         fontFamily: 'SF Pro Display',
       ),
-      home: const HomeScreen(),
+      home: const HomePage(),
     );
   }
 }

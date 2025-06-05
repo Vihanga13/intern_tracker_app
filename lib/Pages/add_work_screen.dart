@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:file_picker/file_picker.dart';
 import 'dart:io';
+// import 'package:image_picker/image_picker.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddWorkEntryPage extends StatefulWidget {
   const AddWorkEntryPage({Key? key}) : super(key: key);
@@ -13,173 +14,797 @@ class AddWorkEntryPage extends StatefulWidget {
 
 class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     with TickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  final _workTitleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _hoursController = TextEditingController();
-
-  late AnimationController _slideController;
+  
+  // Animation Controllers
   late AnimationController _fadeController;
-  late Animation<double> _slideAnimation;
+  late AnimationController _slideController;
+  late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
 
-  DateTime _selectedDate = DateTime.now();
+  // Form Controllers
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _hoursController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  
+  // Form Variables
+  DateTime? _selectedDate;
   String? _selectedWorkType;
-  bool _isLoading = false;
-
   File? _selectedFile;
-  String? _fileName;
+  bool _isSubmitting = false;
 
-  // Update work types to match requirements
+  // Work Type Options
   final List<String> _workTypes = [
-    'Feature',
-    'Bug Fix',
+    'Development',
+    'Testing',
+    'Documentation',
     'Research',
     'Meeting',
-    'Documentation',
-    'Testing',
-    'Review',
+    'Training',
+    'Bug Fixing',
+    'Code Review',
+    'Design',
     'Other'
   ];
+
+  // Image Picker
+  // final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
+    _startAnimations();
   }
 
   void _initializeAnimations() {
-    _slideController = AnimationController(
+    _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _fadeController = AnimationController(
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _scaleController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
-    _slideAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+    );
+  }
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-
-    _slideController.forward();
+  void _startAnimations() async {
+    await Future.delayed(const Duration(milliseconds: 200));
     _fadeController.forward();
+    await Future.delayed(const Duration(milliseconds: 100));
+    _slideController.forward();
+    await Future.delayed(const Duration(milliseconds: 150));
+    _scaleController.forward();
   }
 
   @override
   void dispose() {
-    _slideController.dispose();
     _fadeController.dispose();
-    _workTitleController.dispose();
-    _descriptionController.dispose();
+    _slideController.dispose();
+    _scaleController.dispose();
+    _titleController.dispose();
     _hoursController.dispose();
+    _descriptionController.dispose();
     super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF667eea),
+              Color(0xFF764ba2),
+              Color(0xFF6B73FF),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: _buildForm(),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Material(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add Work Entry',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Track your daily progress',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSectionHeader('📅 Date & Time'),
+              const SizedBox(height: 16),
+              _buildDatePicker(),
+              const SizedBox(height: 24),
+              
+              _buildSectionHeader('📝 Work Details'),
+              const SizedBox(height: 16),
+              _buildTitleField(),
+              const SizedBox(height: 16),
+              _buildWorkTypeDropdown(),
+              const SizedBox(height: 16),
+              _buildHoursField(),
+              const SizedBox(height: 24),
+              
+              _buildSectionHeader('📄 Description'),
+              const SizedBox(height: 16),
+              _buildDescriptionField(),
+              const SizedBox(height: 24),
+              
+              _buildSectionHeader('📎 Attachment (Optional)'),
+              const SizedBox(height: 16),
+              _buildFileUpload(),
+              const SizedBox(height: 32),
+              
+              _buildSubmitButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF2D3748),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _selectDate,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+            color: Colors.grey.shade50,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF667eea).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.calendar_today,
+                  color: Color(0xFF667eea),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Select Date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _selectedDate != null
+                          ? DateFormat('MMM dd, yyyy').format(_selectedDate!)
+                          : 'Choose work date',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: _selectedDate != null 
+                            ? const Color(0xFF2D3748)
+                            : Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.grey.shade400,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTitleField() {
+    return TextFormField(
+      controller: _titleController,
+      decoration: InputDecoration(
+        labelText: 'Work Title',
+        hintText: 'Enter your work title',
+        prefixIcon: Container(
+          margin: const EdgeInsets.all(12),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFF4FC3F7).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.work_outline,
+            color: Color(0xFF4FC3F7),
+            size: 16,
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Please enter a work title';
+        }
+        if (value.trim().length < 3) {
+          return 'Title must be at least 3 characters long';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildWorkTypeDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedWorkType,
+      decoration: InputDecoration(
+        labelText: 'Work Type',
+        hintText: 'Select work category',
+        prefixIcon: Container(
+          margin: const EdgeInsets.all(12),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFF66BB6A).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.category_outlined,
+            color: Color(0xFF66BB6A),
+            size: 16,
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      items: _workTypes.map((String type) {
+        return DropdownMenuItem<String>(
+          value: type,
+          child: Text(type),
+        );
+      }).toList(),
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedWorkType = newValue;
+        });
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select a work type';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildHoursField() {
+    return TextFormField(
+      controller: _hoursController,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+      ],
+      decoration: InputDecoration(
+        labelText: 'Hours Worked',
+        hintText: 'Enter hours (0-24)',
+        suffixText: 'hrs',
+        prefixIcon: Container(
+          margin: const EdgeInsets.all(12),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF7043).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.access_time,
+            color: Color(0xFFFF7043),
+            size: 16,
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Please enter hours worked';
+        }
+        final hours = double.tryParse(value);
+        if (hours == null) {
+          return 'Please enter a valid number';
+        }
+        if (hours <= 0 || hours > 24) {
+          return 'Hours must be between 0.1 and 24';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      controller: _descriptionController,
+      maxLines: 4,
+      decoration: InputDecoration(
+        labelText: 'Description',
+        hintText: 'Describe what you worked on...',
+        alignLabelWithHint: true,
+        prefixIcon: Container(
+          margin: const EdgeInsets.only(top: 12, left: 12, right: 12),
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: const Color(0xFF9C27B0).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: const Icon(
+            Icons.description_outlined,
+            color: Color(0xFF9C27B0),
+            size: 16,
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+      ),
+      validator: (value) {
+        if (value == null || value.trim().isEmpty) {
+          return 'Please provide a description';
+        }
+        if (value.trim().length < 10) {
+          return 'Description must be at least 10 characters long';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildFileUpload() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _pickFile,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: _selectedFile != null ? const Color(0xFF667eea) : Colors.grey.shade300,
+              width: _selectedFile != null ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            color: _selectedFile != null 
+                ? const Color(0xFF667eea).withOpacity(0.05)
+                : Colors.grey.shade50,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF667eea).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  _selectedFile != null ? Icons.check_circle : Icons.attach_file,
+                  color: const Color(0xFF667eea),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedFile != null ? 'File Selected' : 'Attach File',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _selectedFile != null 
+                            ? const Color(0xFF667eea) 
+                            : Colors.grey,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      _selectedFile != null
+                          ? _selectedFile!.path.split('/').last
+                          : 'Optional: Add images or documents',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: _selectedFile != null 
+                            ? const Color(0xFF2D3748)
+                            : Colors.grey.shade600,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (_selectedFile != null)
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedFile = null;
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.close,
+                    color: Colors.grey,
+                    size: 18,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _submitForm,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF667eea),
+          foregroundColor: Colors.white,
+          elevation: _isSubmitting ? 0 : 8,
+          shadowColor: const Color(0xFF667eea).withOpacity(0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: _isSubmitting
+            ? Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Submitting...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.send, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Submit Work Entry',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
   }
 
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
-      context: context,      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(), // Restrict future dates
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF6366F1),
-              brightness: Brightness.light,
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF667eea),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF2D3748),
             ),
           ),
           child: child!,
         );
       },
     );
-
+    
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
       });
+      HapticFeedback.lightImpact();
     }
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      allowMultiple: false,
+    // For demonstration purposes, we'll simulate file picking
+    // In a real app, you would use ImagePicker or file_picker
+    
+    // Uncomment this for real implementation:
+    /*
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1800,
+      maxHeight: 1800,
+      imageQuality: 85,
     );
-
-    if (result != null) {
+    
+    if (image != null) {
       setState(() {
-        _selectedFile = File(result.files.single.path!);
-        _fileName = result.files.single.name;
+        _selectedFile = File(image.path);
       });
+      HapticFeedback.lightImpact();
     }
+    */
+    
+    // Simulation for demo
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('File picker would open here'),
+        backgroundColor: const Color(0xFF667eea),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
   }
 
-  Future<void> _saveWorkEntry() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select a date'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      return;
+    }
 
     setState(() {
-      _isLoading = true;
+      _isSubmitting = true;
     });
 
     try {
+      // Simulate API call delay
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Prepare data for submission
       final workEntry = {
-        'name': _workTitleController.text.trim(),
-        'workTitle': _workTitleController.text.trim(),
-        'description': _descriptionController.text.trim(),        'date': Timestamp.fromDate(_selectedDate),
+        'date': _selectedDate!.toIso8601String(),
+        'title': _titleController.text.trim(),
         'workType': _selectedWorkType,
-        'duration': double.parse(_hoursController.text.trim()),
-        'createdAt': Timestamp.now(),
-        'hasAttachment': _selectedFile != null,
-        'fileName': _fileName,
+        'hours': double.parse(_hoursController.text),
+        'description': _descriptionController.text.trim(),
+        'timestamp': DateTime.now().toIso8601String(),
+        'userId': 'current_user_id', // Replace with actual user ID
       };
 
-      // Save to Firestore
-      await FirebaseFirestore.instance.collection('work_entries').add(workEntry);
+      // Add file URL if file is selected
+      if (_selectedFile != null) {
+        // Upload file to storage and get URL
+        // workEntry['fileUrl'] = uploadedFileUrl;
+        workEntry['hasAttachment'] = true;
+      }
 
-      _clearForm();
+      // Submit to Firebase
+      // await FirebaseFirestore.instance
+      //     .collection('workEntries')
+      //     .add(workEntry);
 
+      // Show success message
       if (mounted) {
+        HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Row(
               children: [
                 Icon(Icons.check_circle, color: Colors.white),
                 SizedBox(width: 8),
-                Text('Work entry saved successfully!'),
+                Text('Work entry submitted successfully!'),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: const Color(0xFF66BB6A),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
+            duration: const Duration(seconds: 3),
           ),
         );
+
+        // Clear the form
+        _clearForm();
       }
     } catch (e) {
+      // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Error: ${e.toString()}'),
-              ],
-            ),
+            content: Text('Error submitting work entry: ${e.toString()}'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -191,367 +816,21 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isSubmitting = false;
         });
       }
     }
   }
 
   void _clearForm() {
-    _workTitleController.clear();
-    _descriptionController.clear();
+    _titleController.clear();
     _hoursController.clear();
+    _descriptionController.clear();
     setState(() {
-      _selectedDate = DateTime.now(); // Reset to today
+      _selectedDate = null;
       _selectedWorkType = null;
       _selectedFile = null;
-      _fileName = null;
     });
-  }
-
-  Widget _buildAnimatedField({
-    required Widget child,
-    required int index,
-  }) {
-    return AnimatedBuilder(      animation: _slideAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(
-            0,
-            20 * _slideAnimation.value * index,
-          ),
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: child,
-          ),
-        );
-      },
-      child: child,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        title: const Text(
-          'Add Work Entry',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1E293B),
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: const Color(0xFFE2E8F0),
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Date Picker
-              _buildField(
-                index: 0,
-                title: 'Date',
-                child: InkWell(
-                  onTap: _selectDate,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, color: Color(0xFF6B7280)),
-                        const SizedBox(width: 12),
-                        Text(
-                          DateFormat('MMM dd, yyyy').format(_selectedDate),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF374151),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // Work Title
-              _buildField(
-                index: 1,
-                title: 'Work Title',
-                child: TextFormField(
-                  controller: _workTitleController,
-                  decoration: InputDecoration(
-                    hintText: 'Enter work title (min 3 characters)',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a work title';
-                    }
-                    if (value.trim().length < 3) {
-                      return 'Title must be at least 3 characters';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // Work Type
-              _buildField(
-                index: 2,
-                title: 'Work Type',
-                child: DropdownButtonFormField<String>(
-                  value: _selectedWorkType,
-                  decoration: InputDecoration(
-                    hintText: 'Select work type',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  items: _workTypes.map((type) {
-                    return DropdownMenuItem(value: type, child: Text(type));
-                  }).toList(),
-                  onChanged: (value) => setState(() => _selectedWorkType = value),
-                  validator: (value) => value == null ? 'Please select a work type' : null,
-                ),
-              ),
-
-              // Hours Spent
-              _buildField(
-                index: 3,
-                title: 'Hours Spent',
-                child: TextFormField(
-                  controller: _hoursController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    hintText: 'Enter hours (0-24)',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter hours';
-                    final hours = double.tryParse(value);
-                    if (hours == null || hours < 0 || hours > 24) {
-                      return 'Hours must be between 0 and 24';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // Description
-              _buildField(
-                index: 4,
-                title: 'Description',
-                child: TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 4,
-                  maxLength: 500,
-                  decoration: InputDecoration(
-                    hintText: 'Enter work description (max 500 characters)',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a description';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-
-              // File Attachment
-              _buildField(
-                index: 5,
-                title: 'Attachment (Optional)',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _pickFile,
-                      icon: const Icon(Icons.attach_file),
-                      label: Text(_fileName == null ? 'Add File' : 'Change File'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF6366F1),
-                        elevation: 0,
-                        side: const BorderSide(color: Color(0xFFE2E8F0)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    if (_fileName != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _fileName!,
-                                style: const TextStyle(color: Color(0xFF6B7280)),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 16),
-                              onPressed: () => setState(() {
-                                _selectedFile = null;
-                                _fileName = null;
-                              }),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Save Button
-              SizedBox(
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveWorkEntry,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Text('Saving...'),
-                          ],
-                        )
-                      : const Text('Save Work Entry'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required int index,
-    required String title,
-    required Widget child,
-  }) {
-    return AnimatedBuilder(
-      animation: _slideAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, 50 * _slideAnimation.value * (index + 1)),
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  child!,
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-      child: child,
-    );
+    _formKey.currentState?.reset();
   }
 }

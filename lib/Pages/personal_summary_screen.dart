@@ -1,3 +1,4 @@
+// Importing required packages
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
 import 'dart:io';
 
+// Define WorkEntry model class
 class WorkEntry {
   final String id;
   final String title;
@@ -16,7 +18,7 @@ class WorkEntry {
   final String description;
   final String? attachmentUrl;
 
-  WorkEntry({
+  const WorkEntry({
     required this.id,
     required this.title,
     required this.type,
@@ -50,6 +52,7 @@ class WorkEntry {
   }
 }
 
+// Define PersonalSummaryScreen widget
 class PersonalSummaryScreen extends StatefulWidget {
   final String userId;
 
@@ -59,20 +62,9 @@ class PersonalSummaryScreen extends StatefulWidget {
   State<PersonalSummaryScreen> createState() => _PersonalSummaryScreenState();
 }
 
+// Define PersonalSummaryScreen state
 class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     with TickerProviderStateMixin {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Personal Summary'),
-      ),
-      body: Center(
-        child: Text('Implement your UI here'),
-      ),
-    );
-  }
-}
   // Animation controllers
   late final AnimationController _slideController;
   late final AnimationController _chartController;
