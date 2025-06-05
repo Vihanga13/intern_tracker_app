@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import 'add_work_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -277,8 +278,7 @@ class _HomePageState extends State<HomePage>
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
-                    ),
-                  ),
+                    ),                  ),
                 ],
               ),
             ),
@@ -538,7 +538,7 @@ class _HomePageState extends State<HomePage>
     // TODO: Navigate to respective pages
     switch (buttonTitle) {
       case 'Add Work Entry':
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => AddWorkEntryPage()));
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const AddWorkEntryPage()));
         break;
       case 'My Summary':
         // Navigator.push(context, MaterialPageRoute(builder: (context) => SummaryPage()));

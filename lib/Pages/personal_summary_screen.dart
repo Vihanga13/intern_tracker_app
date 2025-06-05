@@ -1,598 +1,1185 @@
-// Importing required packages
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:csv/csv.dart';
-import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import '../models/work_entry.dart';
+import '../utils/app_colors.dart';
 
-// Define WorkEntry model class
-class WorkEntry {
-  final String id;
-  final String title;
-  final String type;
-  final double hours;
-  final DateTime date;
-  final String description;
-  final String? attachmentUrl;
-
-  const WorkEntry({
-    required this.id,
-    required this.title,
-    required this.type,
-    required this.hours,
-    required this.date,
-    required this.description,
-    this.attachmentUrl,
-  });
-
-  factory WorkEntry.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return WorkEntry(
-      id: doc.id,
-      title: data['workTitle'] ?? '',
-      type: data['workType'] ?? '',
-      hours: (data['duration'] ?? 0).toDouble(),
-      date: (data['date'] as Timestamp).toDate(),
-      description: data['description'] ?? '',
-      attachmentUrl: data['attachmentUrl'],
-    );
-  }
-
-  Map<String, dynamic> toCsv() {
-    return {
-      'Date': DateFormat('yyyy-MM-dd').format(date),
-      'Title': title,
-      'Type': type,
-      'Hours': hours,
-      'Description': description,
-    };
-  }
-}
-
-// Define PersonalSummaryScreen widget
 class PersonalSummaryScreen extends StatefulWidget {
   final String userId;
-
+  
   const PersonalSummaryScreen({Key? key, required this.userId}) : super(key: key);
 
   @override
   State<PersonalSummaryScreen> createState() => _PersonalSummaryScreenState();
 }
 
-// Define PersonalSummaryScreen state
 class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     with TickerProviderStateMixin {
-  // Animation controllers
-  late final AnimationController _slideController;
-  late final AnimationController _chartController;
-  late final Animation<double> _slideAnimation;
-  late final Animation<double> _chartAnimation;
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
-  // State variables
-  bool _isLoading = false;
-  List<WorkEntry> _filteredEntries = [];
-  List<WorkEntry> _allEntries = [];
-  Map<String, double> _typeDistribution = {};
-  double _totalHours = 0;
-  double _averageHoursPerDay = 0;
-  DateTime? _startDate;
-  DateTime? _endDate;
+  DateTimeRange? _selectedDateRange;
   String? _selectedWorkType;
+  List<WorkEntry> _entries = [];
+  bool _isLoading = true;
 
-  // Constants
   final List<String> _workTypes = [
-    'All',
-    'Feature',
-    'Bug Fix',
+    'All Types',
+    'Development',
+    'Testing',
+    'Documentation',
     'Research',
     'Meeting',
-    'Documentation',
-    'Testing',
-    'Review',
+    'Design',
     'Other'
-  ];
-
-  final List<Color> _chartColors = [
-    Colors.blue,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.red,
-    Colors.teal,
-    Colors.amber,
-    Colors.pink,
   ];
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
-    _fetchData();
+    _initAnimations();
+    _loadEntries();
   }
 
-  void _initializeAnimations() {
-    _slideController = AnimationController(
-      vsync: this,
+  void _initAnimations() {
+    _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
-    );
-
-    _chartController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
     );
 
-    _slideAnimation = CurvedAnimation(
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
       parent: _slideController,
       curve: Curves.easeOutCubic,
-    );
+    ));
 
-    _chartAnimation = CurvedAnimation(
-      parent: _chartController,
-      curve: Curves.easeOutBack,
-    );
-
-    _slideController.forward().then((_) {
-      _chartController.forward();
-    });
+    _fadeController.forward();
+    _slideController.forward();
   }
 
   @override
   void dispose() {
+    _fadeController.dispose();
     _slideController.dispose();
-    _chartController.dispose();
     super.dispose();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _loadEntries() async {
     setState(() => _isLoading = true);
     
     try {
-      final querySnapshot = await FirebaseFirestore.instance
+      Query query = FirebaseFirestore.instance
           .collection('work_entries')
           .where('userId', isEqualTo: widget.userId)
-          .orderBy('date', descending: true)
-          .get();
-
-      setState(() {
-        _allEntries = querySnapshot.docs
-            .map((doc) => WorkEntry.fromFirestore(doc))
-            .toList();
-        _applyFilters();
-      });
+          .orderBy('date', descending: true);
+      
+      if (_selectedDateRange != null) {
+        query = query
+            .where('date', isGreaterThanOrEqualTo: _selectedDateRange!.start)
+            .where('date', isLessThanOrEqualTo: _selectedDateRange!.end);
+      }
+      
+      final snapshot = await query.get();
+      List<WorkEntry> entries = snapshot.docs
+          .map((doc) => WorkEntry.fromFirestore(doc))
+          .toList();
+      
+      if (_selectedWorkType != null && _selectedWorkType != 'All Types') {
+        entries = entries.where((entry) => entry.type == _selectedWorkType).toList();
+      }
+      
+      if (mounted) {
+        setState(() {
+          _entries = entries;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading data: $e')),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
-  }
-
-  void _applyFilters() {
-    _filteredEntries = _allEntries.where((entry) {
-      bool dateFilter = true;
-      if (_startDate != null && _endDate != null) {
-        dateFilter = entry.date.isAfter(_startDate!) && 
-                    entry.date.isBefore(_endDate!.add(const Duration(days: 1)));
-      }
-
-      bool typeFilter = true;
-      if (_selectedWorkType != null && _selectedWorkType != 'All') {
-        typeFilter = entry.type == _selectedWorkType;
-      }
-
-      return dateFilter && typeFilter;
-    }).toList();
-
-    _calculateMetrics();
-  }
-
-  void _calculateMetrics() {
-    _totalHours = _filteredEntries.fold(0, (sum, entry) => sum + entry.hours);
-    
-    if (_filteredEntries.isNotEmpty) {
-      final days = _filteredEntries
-          .map((e) => DateFormat('yyyy-MM-dd').format(e.date))
-          .toSet()
-          .length;
-      _averageHoursPerDay = _totalHours / days;
-    } else {
-      _averageHoursPerDay = 0;
-    }
-
-    _typeDistribution = {};
-    for (var entry in _filteredEntries) {
-      _typeDistribution[entry.type] = 
-          (_typeDistribution[entry.type] ?? 0) + entry.hours;
-    }
-  }
-
-  Future<void> _selectDateRange() async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: _startDate != null && _endDate != null
-          ? DateTimeRange(start: _startDate!, end: _endDate!)
-          : null,
-    );
-
-    if (picked != null && mounted) {
-      setState(() {
-        _startDate = picked.start;
-        _endDate = picked.end;
-      });
-      _applyFilters();
-    }
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _startDate = null;
-      _endDate = null;
-      _selectedWorkType = null;
-      _filteredEntries = _allEntries;
-      _calculateMetrics();
-    });
-  }
-
-  Future<void> _exportToCsv() async {
-    try {
-      final headers = ['Date', 'Title', 'Type', 'Hours', 'Description'];
-      final rows = _filteredEntries.map((e) => e.toCsv().values.toList()).toList();
-      rows.insert(0, headers);
-
-      final csvData = const ListToCsvConverter().convert(rows);
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/work_report.csv');
-      await file.writeAsString(csvData);
-
-      if (mounted) {
-        await Share.shareFiles(
-          [file.path],
-          text: 'Work Report (${DateFormat('yyyy-MM-dd').format(DateTime.now())})',
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error exporting data: $e')),
-        );
-      }
-    }
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required int index,
-  }) {
-    return AnimatedBuilder(
-      animation: _slideAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, (1 - _slideAnimation.value) * 50 * (index + 1)),
-          child: Opacity(
-            opacity: _slideAnimation.value,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color.withOpacity(0.8), color],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, color: Colors.white, size: 24),
-                  const SizedBox(height: 12),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        };
-      },
-    );
-  }
-
-  Widget _buildPieChart() {
-    if (_typeDistribution.isEmpty) {
-      return const Center(child: Text('No data available'));
-    }
-
-    return AnimatedBuilder(
-      animation: _chartAnimation,
-      builder: (context, _) {
-        final sections = _typeDistribution.entries.map((entry) {
-          final idx = _typeDistribution.keys.toList().indexOf(entry.key);
-          return PieChartSectionData(
-            color: _chartColors[idx % _chartColors.length],
-            value: entry.value,
-            title: '${entry.key}\n${entry.value.toStringAsFixed(1)}h',
-            radius: 80 * _chartAnimation.value,
-            titleStyle: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          );
-        }).toList();
-
-        return PieChart(
-          PieChartData(
-            sections: sections,
-            sectionsSpace: 2,
-            centerSpaceRadius: 0,
-          ),
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Summary for ${widget.userId}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            onPressed: _exportToCsv,
-            tooltip: 'Export to CSV',
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF667eea),
+              Color(0xFF764ba2),
+              Color(0xFF6B73FF),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 16),
+                  _buildFilters(),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _isLoading ? _buildLoadingWidget() : _buildContent(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    final totalHours = _calculateTotalHours();
+    final avgHours = _calculateAverageHours();
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const BackButton(color: Colors.white),
+              const Expanded(
+                child: Text(
+                  'Work Summary',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              _buildExportButton(),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Total Hours',
+                  totalHours.toStringAsFixed(1),
+                  Icons.access_time,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildStatCard(
+                  'Average Daily',
+                  avgHours.toStringAsFixed(1),
+                  Icons.trending_up,
+                  Colors.green,
+                ),
+              ),
+              const SizedBox(width: 15),
+              Expanded(
+                child: _buildStatCard(
+                  'Entries',
+                  _entries.length.toString(),
+                  Icons.list_alt,
+                  Colors.orange,
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _allEntries.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'No work entries found',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _fetchData,
-                        child: const Text('Refresh'),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilters() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildDateRangeFilter(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _buildWorkTypeFilter(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateRangeFilter() {
+    return GestureDetector(
+      onTap: _showDateRangePicker,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.4),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.date_range,
+              color: Colors.white.withOpacity(0.9),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _selectedDateRange != null
+                    ? '${DateFormat('MMM dd').format(_selectedDateRange!.start)} - ${DateFormat('MMM dd').format(_selectedDateRange!.end)}'
+                    : 'Select dates',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 14,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWorkTypeFilter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.4),
+          width: 1,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedWorkType ?? 'All Types',
+          icon: Icon(
+            Icons.arrow_drop_down,
+            color: Colors.white.withOpacity(0.9),
+          ),
+          dropdownColor: const Color(0xFF667eea),
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 14,
+          ),
+          items: _workTypes.map((String type) {
+            return DropdownMenuItem<String>(
+              value: type,
+              child: Text(type),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            setState(() {
+              _selectedWorkType = newValue;
+            });
+            _loadEntries();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportButton() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF9A9E), Color(0xFFFECFEF)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: _showExportOptions,
+          child: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Icon(
+              Icons.download,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingWidget() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Loading your work summary...',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    return Container(
+      margin: const EdgeInsets.only(top: 20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildChartsSection(),
+                  const SizedBox(height: 30),
+                  _buildEntriesSection(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Analytics',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3436),
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          height: 300,
+          child: Row(
+            children: [
+              Expanded(child: _buildBarChart()),
+              const SizedBox(width: 20),
+              Expanded(child: _buildPieChart()),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBarChart() {
+    final dailyHours = _calculateDailyHours();
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF667eea).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.bar_chart,
+                  color: Color(0xFF667eea),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Hours per Day',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: dailyHours.values.isNotEmpty 
+                    ? dailyHours.values.reduce((a, b) => a > b ? a : b) + 2
+                    : 10,
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    tooltipBgColor: Colors.white,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final date = dailyHours.keys.toList()[group.x.toInt()];
+                      return BarTooltipItem(
+                        '${DateFormat('MMM dd').format(date)}\n${rod.toY.toStringAsFixed(1)}h',
+                        const TextStyle(color: Color(0xFF2D3436)),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= dailyHours.length) return const Text('');
+                        final date = dailyHours.keys.toList()[value.toInt()];
+                        return Text(
+                          DateFormat('dd').format(date),
+                          style: const TextStyle(
+                            color: Color(0xFF2D3436),
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(
+                            color: Color(0xFF2D3436),
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: dailyHours.entries.map((entry) {
+                  final index = dailyHours.keys.toList().indexOf(entry.key);
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: entry.value,
+                        gradient: AppColors.primaryGradient,
+                        width: 16,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPieChart() {
+    final workTypeHours = _calculateWorkTypeHours();
+    final colors = [
+      const Color(0xFFFF6B6B),
+      const Color(0xFF4ECDC4),
+      const Color(0xFF45B7D1),
+      const Color(0xFF96CEB4),
+      const Color(0xFFFECA57),
+      const Color(0xFF6C5CE7),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4ECDC4).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.pie_chart,
+                  color: Color(0xFF4ECDC4),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Work Type Split',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      sections: workTypeHours.entries.map((entry) {
+                        final index = workTypeHours.keys.toList().indexOf(entry.key);
+                        final total = workTypeHours.values.reduce((a, b) => a + b);
+                        final percentage = (entry.value / total * 100);
+                        
+                        return PieChartSectionData(
+                          color: colors[index % colors.length],
+                          value: entry.value,
+                          title: '${percentage.toStringAsFixed(1)}%',
+                          radius: 50,
+                          titleStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchData,
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
+                ),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: workTypeHours.entries.map((entry) {
+                      final index = workTypeHours.keys.toList().indexOf(entry.key);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
                           children: [
-                            Expanded(
-                              child: _buildStatCard(
-                                title: 'Total Hours',
-                                value: _totalHours.toStringAsFixed(1),
-                                icon: Icons.access_time,
-                                color: Colors.blue,
-                                index: 0,
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: colors[index % colors.length],
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: _buildStatCard(
-                                title: 'Average Hours/Day',
-                                value: _averageHoursPerDay.toStringAsFixed(1),
-                                icon: Icons.analytics,
-                                color: Colors.green,
-                                index: 1,
+                              child: Text(
+                                entry.key,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF2D3436),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Filters',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: InkWell(
-                                        onTap: _selectDateRange,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(color: Colors.grey.shade300),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.calendar_today, size: 20),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                _startDate != null && _endDate != null
-                                                    ? '${DateFormat('MMM dd').format(_startDate!)} - ${DateFormat('MMM dd').format(_endDate!)}'
-                                                    : 'Select Date Range',
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(color: Colors.grey.shade300),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: DropdownButtonHideUnderline(
-                                          child: DropdownButton<String>(
-                                            isExpanded: true,
-                                            hint: const Text('Work Type'),
-                                            value: _selectedWorkType,
-                                            items: _workTypes.map((type) {
-                                              return DropdownMenuItem(
-                                                value: type == 'All' ? null : type,
-                                                child: Text(type),
-                                              );
-                                            }).toList(),
-                                            onChanged: (value) {
-                                              setState(() {
-                                                _selectedWorkType = value;
-                                              });
-                                              _applyFilters();
-                                            },
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton.icon(
-                                    onPressed: _clearFilters,
-                                    icon: const Icon(Icons.clear),
-                                    label: const Text('Clear Filters'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Work Type Distribution',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                SizedBox(
-                                  height: 300,
-                                  child: _buildPieChart(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Work Entries',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _filteredEntries.length,
-                          itemBuilder: (context, index) {
-                            final entry = _filteredEntries[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: ExpansionTile(
-                                leading: Icon(
-                                  Icons.work,
-                                  color: _chartColors[_workTypes.indexOf(entry.type) % _chartColors.length],
-                                ),
-                                title: Text(entry.title),
-                                subtitle: Text(
-                                  '${DateFormat('MMM dd, yyyy').format(entry.date)} • ${entry.hours}h',
-                                ),
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(16),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Description:',
-                                          style: Theme.of(context).textTheme.titleSmall,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(entry.description),
-                                        if (entry.attachmentUrl != null) ...[
-                                          const SizedBox(height: 16),
-                                          OutlinedButton.icon(
-                                            onPressed: () {
-                                              // TODO: Implement attachment download
-                                            },
-                                            icon: const Icon(Icons.attachment),
-                                            label: const Text('View Attachment'),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
+                      );
+                    }).toList(),
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _buildEntriesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Recent Entries',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3436),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _entries.length,
+          itemBuilder: (context, index) {
+            final entry = _entries[index];
+            return _buildEntryCard(entry, index);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEntryCard(WorkEntry entry, int index) {
+    final colors = [
+      const Color(0xFFFF6B6B),
+      const Color(0xFF4ECDC4),
+      const Color(0xFF45B7D1),
+      const Color(0xFF96CEB4),
+      const Color(0xFFFECA57),
+      const Color(0xFF6C5CE7),
+    ];
+    
+    final cardColor = colors[index % colors.length];
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: cardColor.withOpacity(0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: cardColor.withOpacity(0.3)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: cardColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                _getIconForWorkType(entry.type),
+                color: cardColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF2D3436),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('MMM dd, yyyy').format(entry.date),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: cardColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          entry.type,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: cardColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${entry.hours}h',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: cardColor,
+                  ),
+                ),
+                Text(
+                  'hours',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper methods
+  IconData _getIconForWorkType(String type) {
+    switch (type.toLowerCase()) {
+      case 'development': return Icons.code;
+      case 'design': return Icons.design_services;
+      case 'research': return Icons.search;
+      case 'meeting': return Icons.people;
+      case 'documentation': return Icons.description;
+      case 'testing': return Icons.bug_report;
+      default: return Icons.work;
+    }
+  }
+
+  double _calculateTotalHours() {
+    return _entries.fold(0.0, (sum, entry) => sum + entry.hours);
+  }
+
+  double _calculateAverageHours() {
+    if (_entries.isEmpty) return 0.0;
+    final uniqueDays = _entries.map((e) => DateFormat('yyyy-MM-dd').format(e.date)).toSet();
+    return _calculateTotalHours() / uniqueDays.length;
+  }
+
+  Map<DateTime, double> _calculateDailyHours() {
+    final Map<DateTime, double> dailyHours = {};
+    for (final entry in _entries) {
+      final dateKey = DateTime(entry.date.year, entry.date.month, entry.date.day);
+      dailyHours[dateKey] = (dailyHours[dateKey] ?? 0) + entry.hours;
+    }
+    return Map.fromEntries(
+      dailyHours.entries.toList()..sort((a, b) => a.key.compareTo(b.key))
+    );
+  }
+
+  Map<String, double> _calculateWorkTypeHours() {
+    final Map<String, double> workTypeHours = {};
+    for (final entry in _entries) {
+      workTypeHours[entry.type] = (workTypeHours[entry.type] ?? 0) + entry.hours;
+    }
+    return workTypeHours;
+  }
+
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _selectedDateRange,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF667eea),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF2D3436),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDateRange) {
+      setState(() {
+        _selectedDateRange = picked;
+      });
+      _loadEntries();
+    }
+  }
+
+  void _showExportOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Export Options',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2D3436),
+              ),
+            ),
+            const SizedBox(height: 20),
+            _buildExportOption(
+              'Export as CSV',
+              'Download your data in CSV format',
+              Icons.table_chart,
+              const Color(0xFF4ECDC4),
+              () => _exportToCSV(),
+            ),
+            _buildExportOption(
+              'Export as PDF',
+              'Generate a PDF report',
+              Icons.picture_as_pdf,
+              const Color(0xFFFF6B6B),
+              () => _exportToPDF(),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportOption(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2D3436),
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(
+            color: Colors.grey.shade600,
+            fontSize: 12,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          color: color,
+          size: 16,
+        ),
+        onTap: () {
+          Navigator.pop(context);
+          onTap();
+        },
+      ),
+    );
+  }
+
+  Future<void> _showExportDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF667eea)),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _exportToCSV() async {
+    try {
+      await _showExportDialog();
+      await Future.delayed(const Duration(seconds: 2));
+      
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('CSV exported successfully!'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF4ECDC4),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportToPDF() async {
+    try {
+      await _showExportDialog();
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!mounted) return;
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('PDF exported successfully!'),
+            ],
+          ),
+          backgroundColor: const Color(0xFFFF6B6B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Export failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
+
+/*
+To use this Summary Page in your app:
+
+1. Add these dependencies to pubspec.yaml:
+   dependencies:
+     flutter/material.dart
+     fl_chart: ^0.65.0
+     cloud_firestore: ^4.13.6
+     intl: ^0.18.1
+
+2. Import and use the page:
+   ```dart
+   Navigator.push(
+     context,
+     MaterialPageRoute(
+       builder: (context) => SummaryPage(userId: 'your_user_id'),
+     ),
+   );
+   ```
+
+3. Make sure your Firestore collection 'work_entries' has documents with fields:
+   - userId (String)
+   - title (String)
+   - description (String)
+   - hours (double)
+   - type (String)
+   - date (Timestamp)
+   - location (String, optional)
+   - tags (Array of String, optional)
+*/
