@@ -737,10 +737,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
                           columns: [
-                            DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Total Hours', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Average', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Last Updated', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Name')),
+                            DataColumn(label: Text('Total Hours')),
+                            DataColumn(label: Text('Average')),
+                            DataColumn(label: Text('Last Updated')),
                           ],
                           rows: allInterns.map((intern) {
                             return DataRow(
