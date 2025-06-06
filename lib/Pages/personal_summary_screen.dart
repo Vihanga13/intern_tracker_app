@@ -1,12 +1,14 @@
+// Required Flutter and third-party package imports
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
-import '../models/work_entry.dart';
-import '../utils/app_colors.dart';
+import 'package:fl_chart/fl_chart.dart';           // For charts and graphs
+import 'package:cloud_firestore/cloud_firestore.dart'; // For Firebase database
+import 'package:intl/intl.dart';                   // For date formatting
+import '../models/work_entry.dart';                // Local model class
+import '../utils/app_colors.dart';                 // App color constants
 
+// Main screen widget for displaying personal work summary
 class PersonalSummaryScreen extends StatefulWidget {
-  final String userId;
+  final String userId;  // User ID to fetch specific user's data
   
   const PersonalSummaryScreen({Key? key, required this.userId}) : super(key: key);
 
@@ -14,18 +16,22 @@ class PersonalSummaryScreen extends StatefulWidget {
   State<PersonalSummaryScreen> createState() => _PersonalSummaryScreenState();
 }
 
+// State class that handles the dynamic content and animations
 class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+    with TickerProviderStateMixin {  // Mixin for animation controllers
+  // Animation controllers and animations for UI elements
+  late AnimationController _fadeController;    // Controls fade animations
+  late AnimationController _slideController;   // Controls slide animations
+  late Animation<double> _fadeAnimation;       // Fade animation
+  late Animation<Offset> _slideAnimation;      // Slide animation
 
-  DateTimeRange? _selectedDateRange;
-  String? _selectedWorkType;
-  List<WorkEntry> _entries = [];
-  bool _isLoading = true;
+  // State variables
+  DateTimeRange? _selectedDateRange;          // Selected date range for filtering
+  String? _selectedWorkType;                  // Selected work type for filtering
+  List<WorkEntry> _entries = [];              // List of work entries
+  bool _isLoading = true;                     // Loading state flag
 
+  // Available work types for filtering
   final List<String> _workTypes = [
     'All Types',
     'Development',
@@ -79,26 +85,31 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     super.dispose();
   }
 
+  // Load work entries from Firestore database
   Future<void> _loadEntries() async {
     setState(() => _isLoading = true);
     
     try {
+      // Build the query with filters
       Query query = FirebaseFirestore.instance
           .collection('work_entries')
           .where('userId', isEqualTo: widget.userId)
           .orderBy('date', descending: true);
       
+      // Apply date range filter if selected
       if (_selectedDateRange != null) {
         query = query
             .where('date', isGreaterThanOrEqualTo: _selectedDateRange!.start)
             .where('date', isLessThanOrEqualTo: _selectedDateRange!.end);
       }
       
+      // Execute query and transform results
       final snapshot = await query.get();
       List<WorkEntry> entries = snapshot.docs
           .map((doc) => WorkEntry.fromFirestore(doc))
           .toList();
       
+      // Apply work type filter if selected
       if (_selectedWorkType != null && _selectedWorkType != 'All Types') {
         entries = entries.where((entry) => entry.type == _selectedWorkType).toList();
       }
@@ -119,6 +130,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     }
   }
 
+  // Main build method for the screen
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,6 +169,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build the header section with stats
   Widget _buildHeader() {
     final totalHours = _calculateTotalHours();
     final avgHours = _calculateAverageHours();
@@ -218,6 +231,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build individual stat cards
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -267,6 +281,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build filter section
   Widget _buildFilters() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -293,6 +308,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build date range filter widget
   Widget _buildDateRangeFilter() {
     return GestureDetector(
       onTap: _showDateRangePicker,
@@ -332,6 +348,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build work type filter dropdown
   Widget _buildWorkTypeFilter() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -372,6 +389,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build export button
   Widget _buildExportButton() {
     return Container(
       decoration: BoxDecoration(
@@ -405,6 +423,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build loading widget
   Widget _buildLoadingWidget() {
     return const Center(
       child: Column(
@@ -426,6 +445,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build main content area
   Widget _buildContent() {
     return Container(
       margin: const EdgeInsets.only(top: 20),
@@ -465,6 +485,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build charts section with bar and pie charts
   Widget _buildChartsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,6 +513,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build bar chart for daily hours
   Widget _buildBarChart() {
     final dailyHours = _calculateDailyHours();
     
@@ -615,6 +637,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build pie chart for work type distribution
   Widget _buildPieChart() {
     final workTypeHours = _calculateWorkTypeHours();
     final colors = [
@@ -741,6 +764,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build the list of work entries
   Widget _buildEntriesSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -767,6 +791,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build individual entry cards
   Widget _buildEntryCard(WorkEntry entry, int index) {
     final colors = [
       const Color(0xFFFF6B6B),
@@ -959,6 +984,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     }
   }
 
+  // Show export options dialog
   void _showExportOptions() {
     showModalBottomSheet(
       context: context,
@@ -1014,6 +1040,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Build individual export option tiles
   Widget _buildExportOption(
     String title,
     String subtitle,
@@ -1078,6 +1105,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     );
   }
 
+  // Export data to CSV format
   Future<void> _exportToCSV() async {
     try {
       await _showExportDialog();
@@ -1115,6 +1143,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
     }
   }
 
+  // Export data to PDF format
   Future<void> _exportToPDF() async {
     try {
       await _showExportDialog();

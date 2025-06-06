@@ -1,16 +1,18 @@
+/// A comprehensive dashboard for supervisors to monitor intern progress
+/// This screen provides analytics, comparisons, and detailed views of intern work data
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-// Data Models
+/// Data model representing an intern's work data and statistics
 class InternData {
-  final String id;
-  final String name;
-  final String email;
-  final double totalHours;
-  final double averageHours;
-  final DateTime lastUpdated;
-  final List<TimeEntry> entries;
+  final String id;          // Unique identifier for the intern
+  final String name;        // Intern's full name
+  final String email;       // Intern's email address
+  final double totalHours;  // Total hours worked
+  final double averageHours;// Average hours per work entry
+  final DateTime lastUpdated;// Most recent work entry date
+  final List<TimeEntry> entries; // List of all time entries
 
   InternData({
     required this.id,
@@ -22,6 +24,8 @@ class InternData {
     required this.entries,
   });
 
+  /// Creates an InternData instance from Firestore document and time entries
+  /// Calculates statistics like total hours, average, and last update time
   factory InternData.fromFirestore(DocumentSnapshot doc, List<TimeEntry> entries) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     double total = entries.fold(0.0, (sum, entry) => sum + entry.hours);
@@ -42,11 +46,12 @@ class InternData {
   }
 }
 
+/// Model representing a single time entry for work done
 class TimeEntry {
-  final String id;
-  final DateTime date;
-  final double hours;
-  final String description;
+  final String id;           // Unique identifier for the entry
+  final DateTime date;       // Date when work was performed
+  final double hours;        // Number of hours worked
+  final String description;  // Description of work done
 
   TimeEntry({
     required this.id,
@@ -55,6 +60,7 @@ class TimeEntry {
     required this.description,
   });
 
+  /// Creates a TimeEntry instance from Firestore document data
   factory TimeEntry.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return TimeEntry(
@@ -66,10 +72,12 @@ class TimeEntry {
   }
 }
 
-// Firebase Service
+/// Service class for handling Firebase operations
 class FirebaseService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Loads all interns and their time entries from Firestore
+  /// Returns mock data if Firebase connection fails
   static Future<List<InternData>> loadAllInterns() async {
     try {
       QuerySnapshot usersSnapshot = await _firestore.collection('users').get();
@@ -89,6 +97,8 @@ class FirebaseService {
     }
   }
 
+  /// Fetches time entries for a specific user from Firestore
+  /// Returns an empty list if the fetch fails
   static Future<List<TimeEntry>> fetchEntriesForUser(String userId) async {
     try {
       QuerySnapshot entriesSnapshot = await _firestore
@@ -107,7 +117,8 @@ class FirebaseService {
     }
   }
 
-  // Mock data for testing
+  /// Generates mock data for testing purposes
+  /// Used when Firebase data is unavailable
   static List<InternData> _getMockData() {
     List<TimeEntry> mockEntries1 = [
       TimeEntry(id: '1', date: DateTime.now().subtract(Duration(days: 1)), hours: 8.0, description: 'Project work'),
@@ -158,12 +169,13 @@ class FirebaseService {
   }
 }
 
-// Custom Dropdown Widget
+/// Custom dropdown widget with search functionality
+/// Displays intern information in an expandable list
 class DropdownSearch extends StatefulWidget {
-  final List<InternData> items;
-  final InternData? selectedItem;
-  final Function(InternData?) onChanged;
-  final String hint;
+  final List<InternData> items;      // List of interns to display
+  final InternData? selectedItem;    // Currently selected intern
+  final Function(InternData?) onChanged; // Callback when selection changes
+  final String hint;                 // Placeholder text
 
   const DropdownSearch({
     Key? key,
@@ -177,8 +189,9 @@ class DropdownSearch extends StatefulWidget {
   _DropdownSearchState createState() => _DropdownSearchState();
 }
 
+/// State class for the custom dropdown
 class _DropdownSearchState extends State<DropdownSearch> {
-  bool isExpanded = false;
+  bool isExpanded = false;  // Controls dropdown expansion state
 
   @override
   Widget build(BuildContext context) {
@@ -273,12 +286,12 @@ class _DropdownSearchState extends State<DropdownSearch> {
   }
 }
 
-// Stats Card Widget
+/// Widget displaying a single statistic in a styled card
 class StatsCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
+  final String title;    // Title of the statistic
+  final String value;    // Value to display
+  final IconData icon;   // Icon representing the statistic
+  final Color color;     // Theme color for the card
 
   const StatsCard({
     Key? key,
@@ -343,18 +356,20 @@ class StatsCard extends StatelessWidget {
   }
 }
 
-// Progress Chart Widget
+/// Chart widget showing an intern's progress over time
 class ProgressChart extends StatelessWidget {
-  final InternData internData;
+  final InternData internData;  // Data to display in the chart
 
   const ProgressChart({Key? key, required this.internData}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // Calculate data points for the chart
     List<FlSpot> spots = [];
     List<TimeEntry> sortedEntries = List.from(internData.entries)
       ..sort((a, b) => a.date.compareTo(b.date));
 
+    // Calculate cumulative hours for progress chart
     double cumulativeHours = 0;
     for (int i = 0; i < sortedEntries.length; i++) {
       cumulativeHours += sortedEntries[i].hours;
@@ -451,7 +466,8 @@ class ProgressChart extends StatelessWidget {
   }
 }
 
-// Main Supervisor Dashboard
+/// Main dashboard screen for supervisors
+/// Provides overview of all interns' progress and detailed individual views
 class SupervisorDashboardScreen extends StatefulWidget {
   const SupervisorDashboardScreen({Key? key}) : super(key: key);
 
@@ -459,17 +475,21 @@ class SupervisorDashboardScreen extends StatefulWidget {
   _SupervisorDashboardScreenState createState() => _SupervisorDashboardScreenState();
 }
 
+/// State class for the supervisor dashboard
+/// Manages data loading, selection state, and UI rendering
 class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
-  List<InternData> allInterns = [];
-  InternData? selectedIntern;
-  bool isLoading = true;
+  List<InternData> allInterns = [];    // List of all interns
+  InternData? selectedIntern;          // Currently selected intern for detailed view
+  bool isLoading = true;               // Loading state flag
 
   @override
   void initState() {
     super.initState();
-    loadDashboardData();
+    loadDashboardData();  // Load data when screen initializes
   }
 
+  /// Loads or refreshes dashboard data from Firebase
+  /// Updates state with new data and handles loading indicators
   Future<void> loadDashboardData() async {
     setState(() => isLoading = true);
     
@@ -479,7 +499,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
       setState(() {
         allInterns = interns;
         if (interns.isNotEmpty && selectedIntern == null) {
-          selectedIntern = interns.first;
+          selectedIntern = interns.first;  // Select first intern by default
         }
         isLoading = false;
       });

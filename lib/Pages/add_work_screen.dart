@@ -1,10 +1,14 @@
+/// This file implements a form for interns to add new work entries
+/// including details like work hours, type, description, and attachments
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+// Firebase imports commented out for demo
 // import 'package:image_picker/image_picker.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Main widget for the work entry form screen
 class AddWorkEntryPage extends StatefulWidget {
   const AddWorkEntryPage({Key? key}) : super(key: key);
 
@@ -12,30 +16,32 @@ class AddWorkEntryPage extends StatefulWidget {
   State<AddWorkEntryPage> createState() => _AddWorkEntryPageState();
 }
 
+/// State class for the work entry form
+/// Manages form state, animations, and submission logic
 class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     with TickerProviderStateMixin {
   
-  // Animation Controllers
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late AnimationController _scaleController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _scaleAnimation;
+  // Animation Controllers and Animations for UI effects
+  late AnimationController _fadeController;    // Controls fade in/out effects
+  late AnimationController _slideController;   // Controls sliding animations
+  late AnimationController _scaleController;   // Controls scaling animations
+  late Animation<double> _fadeAnimation;       // Fade animation
+  late Animation<Offset> _slideAnimation;      // Slide up animation
+  late Animation<double> _scaleAnimation;      // Scale animation
 
-  // Form Controllers
+  // Form key and text controllers for form validation and input management
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _hoursController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _titleController = TextEditingController();       // Work title input
+  final _hoursController = TextEditingController();       // Hours worked input
+  final _descriptionController = TextEditingController(); // Work description input
   
-  // Form Variables
-  DateTime? _selectedDate;
-  String? _selectedWorkType;
-  File? _selectedFile;
-  bool _isSubmitting = false;
+  // Form state variables
+  DateTime? _selectedDate;      // Selected work date
+  String? _selectedWorkType;    // Selected category of work
+  File? _selectedFile;         // Attached file (if any)
+  bool _isSubmitting = false;  // Form submission state
 
-  // Work Type Options
+  // Available work type options for the dropdown
   final List<String> _workTypes = [
     'Development',
     'Testing',
@@ -49,7 +55,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     'Other'
   ];
 
-  // Image Picker
+  // Image picker instance (commented out for demo)
   // final ImagePicker _picker = ImagePicker();
 
   @override
@@ -59,6 +65,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     _startAnimations();
   }
 
+  /// Initializes animation controllers and animations
   void _initializeAnimations() {
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -85,6 +92,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Starts the animations in sequence with delays
   void _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 200));
     _fadeController.forward();
@@ -198,6 +206,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds the main form UI with sections for date, work details,
+  /// description, and file attachment
   Widget _buildForm() {
     return ScaleTransition(
       scale: _scaleAnimation,
@@ -251,6 +261,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Creates a styled section header with an emoji icon
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
@@ -262,6 +273,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds a custom date picker field with calendar icon
   Widget _buildDatePicker() {
     return Material(
       color: Colors.transparent,
@@ -330,6 +342,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds the work title input field with validation
   Widget _buildTitleField() {
     return TextFormField(
       controller: _titleController,
@@ -373,6 +386,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds the work type dropdown with custom styling
   Widget _buildWorkTypeDropdown() {
     return DropdownButtonFormField<String>(
       value: _selectedWorkType,
@@ -424,6 +438,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds the hours worked input field with validation
+  /// Accepts decimal values between 0.1 and 24
   Widget _buildHoursField() {
     return TextFormField(
       controller: _hoursController,
@@ -476,6 +492,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds a multi-line description field with validation
   Widget _buildDescriptionField() {
     return TextFormField(
       controller: _descriptionController,
@@ -521,6 +538,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds the file upload section with preview and clear functionality
   Widget _buildFileUpload() {
     return Material(
       color: Colors.transparent,
@@ -604,6 +622,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Builds an animated submit button that shows loading state
   Widget _buildSubmitButton() {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -661,6 +680,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Shows date picker dialog and handles date selection
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -690,6 +710,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     }
   }
 
+  /// Handles file selection (currently simulated)
   Future<void> _pickFile() async {
     // For demonstration purposes, we'll simulate file picking
     // In a real app, you would use ImagePicker or file_picker
@@ -725,6 +746,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     );
   }
 
+  /// Validates and submits the form data
+  /// Shows loading state and success/error messages
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -822,6 +845,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     }
   }
 
+  /// Resets the form to its initial state
+  /// Clears all inputs and selections
   void _clearForm() {
     _titleController.clear();
     _hoursController.clear();
