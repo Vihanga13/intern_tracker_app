@@ -1,9 +1,11 @@
+// Import necessary Flutter packages and local screens
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'add_work_screen.dart';
 import 'personal_summary_screen.dart';
 import 'supervisor_dashboard_screen.dart';
 
+// Main HomePage widget that represents the home screen of the intern progress tracker
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -11,21 +13,25 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+// State class for HomePage that includes animations using TickerProviderStateMixin
 class _HomePageState extends State<HomePage>
     with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _scaleController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<Offset> _slideAnimation;
+  // Animation controllers for different animation effects
+  late AnimationController _fadeController;   // Controls fade-in animations
+  late AnimationController _scaleController;  // Controls scaling animations
+  late AnimationController _slideController;  // Controls sliding animations
+  
+  // Animation objects that define how elements animate
+  late Animation<double> _fadeAnimation;      // Controls opacity transitions
+  late Animation<double> _scaleAnimation;     // Controls size transitions
+  late Animation<Offset> _slideAnimation;     // Controls position transitions
 
-  // Hardcoded user data
+  // Mock user data (to be replaced with real data in production)
   final String userName = "Vihanga";
   final String userRole = "Software Engineering Intern";
   final String profileImageUrl = "https://via.placeholder.com/100";
 
-  // Daily quotes
+  // Collection of motivational quotes displayed daily
   final List<String> dailyQuotes = [
     "Every expert was once a beginner. 🌟",
     "Progress, not perfection. 💪",
@@ -41,20 +47,27 @@ class _HomePageState extends State<HomePage>
     _startAnimations();
   }
 
+  // Initialize animation controllers and their properties
   void _initializeAnimations() {
+    // Set up fade animation (1 second duration)
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
+    
+    // Set up scale animation (0.8 seconds duration)
     _scaleController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
+    
+    // Set up slide animation (1.2 seconds duration)
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
 
+    // Define animation curves and ranges
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
@@ -67,6 +80,7 @@ class _HomePageState extends State<HomePage>
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
   }
 
+  // Start animations in sequence with slight delays
   void _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 300));
     _fadeController.forward();
@@ -84,10 +98,12 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
+  // Main build method that constructs the UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        // Beautiful gradient background
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -101,6 +117,7 @@ class _HomePageState extends State<HomePage>
           ),
         ),
         child: SafeArea(
+          // CustomScrollView for better scrolling experience
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -110,11 +127,11 @@ class _HomePageState extends State<HomePage>
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
-                      _buildUserInfoCard(),
+                      _buildUserInfoCard(),      // User profile section
                       const SizedBox(height: 30),
-                      _buildActionButtons(),
+                      _buildActionButtons(),     // Main action buttons
                       const SizedBox(height: 30),
-                      _buildBottomSection(),
+                      _buildBottomSection(),     // Daily quote and date
                     ],
                   ),
                 ),
@@ -126,6 +143,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // Build a beautiful gradient app bar with animated title
   Widget _buildAppBar() {
     return SliverAppBar(
       expandedHeight: 120,
@@ -158,7 +176,6 @@ class _HomePageState extends State<HomePage>
             );
           },
         ),
-        // Removed subtitle as FlexibleSpaceBar does not support it
         background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -175,8 +192,8 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildUserInfoCard() {
-    return AnimatedBuilder(
+  // Build user profile card with animations and gradient effects
+  Widget _buildUserInfoCard() {    return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
         return Transform.scale(
@@ -279,8 +296,8 @@ class _HomePageState extends State<HomePage>
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
-
-                    ),                  ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -290,7 +307,9 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // Build the main action buttons with beautiful gradients and animations
   Widget _buildActionButtons() {
+    // Define button configurations
     final buttons = [
       {
         'icon': Icons.add_circle_outline,
@@ -321,6 +340,7 @@ class _HomePageState extends State<HomePage>
       },
     ];
 
+    // Animate buttons sliding in from bottom
     return SlideTransition(
       position: _slideAnimation,
       child: Column(
@@ -328,6 +348,7 @@ class _HomePageState extends State<HomePage>
           final index = entry.key;
           final button = entry.value;
           
+          // Staggered animation for each button
           return AnimatedContainer(
             duration: Duration(milliseconds: 300 + (index * 100)),
             margin: const EdgeInsets.only(bottom: 16),
@@ -344,6 +365,7 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // Build an individual action button with gradient and hover effects
   Widget _buildActionButton({
     required IconData icon,
     required String title,
@@ -356,7 +378,7 @@ class _HomePageState extends State<HomePage>
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: () {
-          HapticFeedback.lightImpact();
+          HapticFeedback.lightImpact();  // Add haptic feedback for better UX
           onTap();
         },
         borderRadius: BorderRadius.circular(16),
@@ -424,7 +446,9 @@ class _HomePageState extends State<HomePage>
     );
   }
 
+  // Build bottom section with daily quote and date display
   Widget _buildBottomSection() {
+    // Select quote based on the day of the month
     final now = DateTime.now();
     final quote = dailyQuotes[now.day % dailyQuotes.length];
     
@@ -432,6 +456,7 @@ class _HomePageState extends State<HomePage>
       opacity: _fadeAnimation,
       child: Column(
         children: [
+          // Daily quote card
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -468,6 +493,7 @@ class _HomePageState extends State<HomePage>
             ),
           ),
           const SizedBox(height: 20),
+          // Date and version display
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -477,6 +503,7 @@ class _HomePageState extends State<HomePage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Date display
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -497,6 +524,7 @@ class _HomePageState extends State<HomePage>
                     ),
                   ],
                 ),
+                // Version display
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -524,7 +552,10 @@ class _HomePageState extends State<HomePage>
       ),
     );
   }
+
+  // Handle button taps and navigate to appropriate screens
   void _handleButtonTap(String buttonTitle) {
+    // Show feedback snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$buttonTitle tapped!'),
@@ -534,7 +565,10 @@ class _HomePageState extends State<HomePage>
           borderRadius: BorderRadius.circular(10),
         ),
       ),
-    );    switch (buttonTitle) {
+    );
+    
+    // Navigate to the appropriate screen based on button title
+    switch (buttonTitle) {
       case 'Add Work Entry':
         Navigator.push(context, MaterialPageRoute(builder: (context) => const AddWorkEntryPage()));
         break;
