@@ -1,6 +1,7 @@
 // Import necessary Flutter packages and local screens
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../utils/app_colors.dart';
 import 'add_work_screen.dart';
 import 'personal_summary_screen.dart';
 import 'supervisor_dashboard_screen.dart';
@@ -102,18 +103,17 @@ class _HomePageState extends State<HomePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        // Beautiful gradient background
-        decoration: const BoxDecoration(
+      body: Container(        // Beautiful gradient background using new color scheme
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-              Color(0xFF6B73FF),
+              AppColors.primaryRoyalBlue,
+              AppColors.primaryRoyalBlue.withOpacity(0.8),
+              AppColors.secondaryCoralOrange.withOpacity(0.6),
             ],
-            stops: [0.0, 0.5, 1.0],
+            stops: [0.0, 0.7, 1.0],
           ),
         ),
         child: SafeArea(
@@ -175,14 +175,13 @@ class _HomePageState extends State<HomePage>
               ),
             );
           },
-        ),
-        background: Container(
-          decoration: const BoxDecoration(
+        ),        background: Container(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFF667eea),
+                AppColors.primaryRoyalBlue,
                 Colors.transparent,
               ],
             ),
@@ -202,14 +201,13 @@ class _HomePageState extends State<HomePage>
             opacity: _fadeAnimation,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
+              padding: const EdgeInsets.all(24),              decoration: BoxDecoration(
+                gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.white,
-                    Color(0xFFF8F9FF),
+                    AppColors.cardBackground,
+                    AppColors.backgroundLight,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -227,15 +225,12 @@ class _HomePageState extends State<HomePage>
                     children: [
                       Container(
                         width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
+                        height: 70,                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                          ),
+                          gradient: AppColors.primaryGradient,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF667eea).withOpacity(0.3),
+                              color: AppColors.primaryRoyalBlue.withOpacity(0.3),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
@@ -251,22 +246,20 @@ class _HomePageState extends State<HomePage>
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AnimatedDefaultTextStyle(
+                          children: [                            AnimatedDefaultTextStyle(
                               duration: const Duration(milliseconds: 500),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF2D3748),
+                                color: AppColors.textPrimary,
                               ),
                               child: Text('Hi, $userName 👋'),
                             ),
-                            const SizedBox(height: 5),
-                            Text(
+                            const SizedBox(height: 5),                            Text(
                               userRole,
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Colors.grey[600],
+                                color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -281,11 +274,8 @@ class _HomePageState extends State<HomePage>
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                      ),
+                    ),                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
@@ -308,34 +298,29 @@ class _HomePageState extends State<HomePage>
   }
 
   // Build the main action buttons with beautiful gradients and animations
-  Widget _buildActionButtons() {
-    // Define button configurations
+  Widget _buildActionButtons() {    // Define button configurations with new color scheme
     final buttons = [
       {
         'icon': Icons.add_circle_outline,
         'title': 'Add Work Entry',
         'subtitle': 'Log your daily tasks',
-        'color': const Color(0xFF4FC3F7),
-        'gradient': const LinearGradient(
-          colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6)],
-        ),
+        'color': AppColors.secondaryCoralOrange,
+        'gradient': AppColors.secondaryGradient,
       },
       {
         'icon': Icons.analytics_outlined,
         'title': 'My Summary',
         'subtitle': 'View your progress',
-        'color': const Color(0xFF66BB6A),
-        'gradient': const LinearGradient(
-          colors: [Color(0xFF66BB6A), Color(0xFF4CAF50)],
-        ),
+        'color': AppColors.primaryRoyalBlue,
+        'gradient': AppColors.primaryGradient,
       },
       {
         'icon': Icons.supervisor_account_outlined,
         'title': 'Supervisor Dashboard',
         'subtitle': 'Manage team tasks',
-        'color': const Color(0xFFFF7043),
+        'color': AppColors.secondaryCoralOrange,
         'gradient': const LinearGradient(
-          colors: [Color(0xFFFF7043), Color(0xFFFF5722)],
+          colors: [Color(0xFFFF6B35), Color(0xFFE74C3C)],
         ),
       },
     ];
@@ -459,9 +444,8 @@ class _HomePageState extends State<HomePage>
           // Daily quote card
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.95),
+            padding: const EdgeInsets.all(20),            decoration: BoxDecoration(
+              color: AppColors.cardBackground.withOpacity(0.95),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -473,19 +457,19 @@ class _HomePageState extends State<HomePage>
             ),
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.format_quote,
-                  color: Color(0xFF667eea),
+                  color: AppColors.primaryRoyalBlue,
                   size: 30,
                 ),
                 const SizedBox(height: 10),
                 Text(
                   quote,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontStyle: FontStyle.italic,
-                    color: Color(0xFF2D3748),
+                    color: AppColors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -559,7 +543,7 @@ class _HomePageState extends State<HomePage>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$buttonTitle tapped!'),
-        backgroundColor: const Color(0xFF667eea),
+        backgroundColor: AppColors.primaryRoyalBlue,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),

@@ -5,46 +5,68 @@ import 'package:flutter/material.dart';
 /// to update the app's theme by modifying colors in one place.
 class AppColors {
   // Primary colors used throughout the app
-  /// Main brand color, used for primary elements and actions
-  static const Color primaryBlue = Color(0xFF667eea);
+  /// Primary color - Royal Blue for app bar, buttons, main accents
+  static const Color primaryRoyalBlue = Color(0xFF007BFF);
   
-  /// Used for success states, confirmations, and environmental elements
-  static const Color accentGreen = Color(0xFF4ECDC4);
+  /// Secondary/Button color - Coral Orange for buttons and highlights
+  static const Color secondaryCoralOrange = Color(0xFFFF6B35);
   
-  /// Used for secondary actions and depth in gradients
-  static const Color accentPurple = Color(0xFF764ba2);
+  /// Background color - Clean Light for main background
+  static const Color backgroundLight = Color(0xFFFAFAFA);
   
-  /// Used for warnings, highlights, and attention-grabbing elements
-  static const Color accentOrange = Color(0xFFFECA57);
-
-  /// Primary gradient used for backgrounds and important UI elements
-  /// Creates a smooth transition from blue to purple
+  /// Surface/Card background - Pure White for card background
+  static const Color cardBackground = Color(0xFFFFFFFF);
+  
+  /// Text primary color - Strong readable black
+  static const Color textPrimary = Color(0xFF1C1C1E);
+  
+  /// Text secondary color - Neutral support tone for subtext, labels
+  static const Color textSecondary = Color(0xFF6B7280);
+  
+  /// Button text color - White for contrast
+  static const Color buttonText = Color(0xFFFFFFFF);
+  
+  /// Success color - Calm Green for success indication
+  static const Color successCalmGreen = Color(0xFF27AE60);
+  
+  /// Error color - Rich Red for error/warning
+  static const Color errorRichRed = Color(0xFFE74C3C);
+  
+  // Legacy color names for backward compatibility
+  static const Color primaryDarkBlue = primaryRoyalBlue;
+  static const Color primaryDeepCyan = primaryRoyalBlue;
+  static const Color secondaryTeal = secondaryCoralOrange;
+  static const Color accentMustardYellow = secondaryCoralOrange;
+  static const Color successGreen = successCalmGreen;
+  static const Color successOliveGreen = successCalmGreen;
+  static const Color errorRed = errorRichRed;
+  static const Color errorRedClay = errorRichRed;
+  
+  /// Primary gradient using Royal Blue and lighter blue tones
   static const primaryGradient = LinearGradient(
-    colors: [Color(0xFF667eea), Color(0xFF764ba2)],
+    colors: [Color(0xFF007BFF), Color(0xFF0056CC)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Secondary gradient used for cards and less prominent elements
-  /// Creates a calming transition from teal to darker green
+  /// Secondary gradient with coral orange tones
   static const secondaryGradient = LinearGradient(
-    colors: [Color(0xFF4ECDC4), Color(0xFF44A08D)],
+    colors: [Color(0xFFFF6B35), Color(0xFFFF8C69)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   /// Color palette for different work types in the app
-  /// These colors are used to distinguish between different categories
-  /// of work entries in charts, lists, and other UI elements
+  /// These colors work well with the new Royal Blue and Coral Orange theme
   static const workTypeColors = [
-    Color(0xFFFF6B6B), // Red - Used for urgent or important tasks
-    Color(0xFF4ECDC4), // Teal - Used for development tasks
-    Color(0xFF45B7D1), // Blue - Used for planning tasks
-    Color(0xFF96CEB4), // Green - Used for completed or successful tasks
-    Color(0xFFFECA57), // Yellow - Used for in-progress or pending tasks
-    Color(0xFF6C5CE7), // Purple - Used for research tasks
-    Color(0xFFFF9FF3), // Pink - Used for design tasks
-    Color(0xFFF54EA2), // Magenta - Used for miscellaneous tasks
+    Color(0xFFE74C3C), // Rich Red - Used for urgent or important tasks
+    Color(0xFF27AE60), // Calm Green - Used for development tasks
+    Color(0xFF1ABC9C), // Teal - Used for planning tasks
+    Color(0xFF8E44AD), // Purple - Used for research tasks
+    Color(0xFFF39C12), // Orange - Used for in-progress or pending tasks
+    Color(0xFF34495E), // Dark Gray - Used for documentation tasks
+    Color(0xFFE91E63), // Pink - Used for design tasks
+    Color(0xFF95A5A6), // Light Gray - Used for miscellaneous tasks
   ];
 
   /// Returns a color from the workTypeColors array based on the work type

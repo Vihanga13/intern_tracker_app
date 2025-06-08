@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'dart:io';
+import '../utils/app_colors.dart';
 // Firebase imports commented out for demo
 // import 'package:image_picker/image_picker.dart';
 // import 'package:cloud_firestore/cloud_firestore.dart';
@@ -116,15 +117,14 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
+      body: Container(        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-              Color(0xFF6B73FF),
+              AppColors.primaryDeepCyan,
+              AppColors.secondaryTeal,
+              Color(0xFF2C9BA0),
             ],
             stops: [0.0, 0.5, 1.0],
           ),
