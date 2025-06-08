@@ -3,36 +3,34 @@ import 'package:flutter/material.dart';
 /// AppColors is a utility class that defines the app's color scheme and gradients.
 /// This ensures consistent colors throughout the application and makes it easy
 /// to update the app's theme by modifying colors in one place.
-class AppColors {
-  // Primary colors used throughout the app
-  /// Primary color - Royal Blue for app bar, buttons, main accents
-  static const Color primaryRoyalBlue = Color(0xFF007BFF);
+class AppColors {  // Primary colors used throughout the app - Black and White Theme
+  /// Primary color - Black for app bar, buttons, main accents
+  static const Color primaryRoyalBlue = Color(0xFF000000);
   
-  /// Secondary/Button color - Coral Orange for buttons and highlights
-  static const Color secondaryCoralOrange = Color(0xFFFF6B35);
+  /// Secondary/Button color - Dark Gray for buttons and highlights
+  static const Color secondaryCoralOrange = Color(0xFF424242);
   
-  /// Background color - Clean Light for main background
-  static const Color backgroundLight = Color(0xFFFAFAFA);
+  /// Background color - White for main background
+  static const Color backgroundLight = Color(0xFFFFFFFF);
   
-  /// Surface/Card background - Pure White for card background
-  static const Color cardBackground = Color(0xFFFFFFFF);
+  /// Surface/Card background - Light Gray for card background
+  static const Color cardBackground = Color(0xFFF5F5F5);
   
-  /// Text primary color - Strong readable black
-  static const Color textPrimary = Color(0xFF1C1C1E);
+  /// Text primary color - Black
+  static const Color textPrimary = Color(0xFF000000);
   
-  /// Text secondary color - Neutral support tone for subtext, labels
-  static const Color textSecondary = Color(0xFF6B7280);
+  /// Text secondary color - Dark Gray for subtext, labels
+  static const Color textSecondary = Color(0xFF757575);
   
   /// Button text color - White for contrast
   static const Color buttonText = Color(0xFFFFFFFF);
   
-  /// Success color - Calm Green for success indication
-  static const Color successCalmGreen = Color(0xFF27AE60);
+  /// Success color - Dark Gray for success indication
+  static const Color successCalmGreen = Color(0xFF424242);
   
-  /// Error color - Rich Red for error/warning
-  static const Color errorRichRed = Color(0xFFE74C3C);
-  
-  // Legacy color names for backward compatibility
+  /// Error color - Black for error/warning
+  static const Color errorRichRed = Color(0xFF000000);
+    // Legacy color names for backward compatibility
   static const Color primaryDarkBlue = primaryRoyalBlue;
   static const Color primaryDeepCyan = primaryRoyalBlue;
   static const Color secondaryTeal = secondaryCoralOrange;
@@ -42,31 +40,31 @@ class AppColors {
   static const Color errorRed = errorRichRed;
   static const Color errorRedClay = errorRichRed;
   
-  /// Primary gradient using Royal Blue and lighter blue tones
+  /// Primary gradient using Black and Dark Gray tones
   static const primaryGradient = LinearGradient(
-    colors: [Color(0xFF007BFF), Color(0xFF0056CC)],
+    colors: [Color(0xFF000000), Color(0xFF424242)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Secondary gradient with coral orange tones
+  /// Secondary gradient with dark gray tones
   static const secondaryGradient = LinearGradient(
-    colors: [Color(0xFFFF6B35), Color(0xFFFF8C69)],
+    colors: [Color(0xFF424242), Color(0xFF757575)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Color palette for different work types in the app
-  /// These colors work well with the new Royal Blue and Coral Orange theme
+  /// Color palette for different work types in the app - Black and White Theme
+  /// These colors use different shades of gray and black for work type distinction
   static const workTypeColors = [
-    Color(0xFFE74C3C), // Rich Red - Used for urgent or important tasks
-    Color(0xFF27AE60), // Calm Green - Used for development tasks
-    Color(0xFF1ABC9C), // Teal - Used for planning tasks
-    Color(0xFF8E44AD), // Purple - Used for research tasks
-    Color(0xFFF39C12), // Orange - Used for in-progress or pending tasks
-    Color(0xFF34495E), // Dark Gray - Used for documentation tasks
-    Color(0xFFE91E63), // Pink - Used for design tasks
-    Color(0xFF95A5A6), // Light Gray - Used for miscellaneous tasks
+    Color(0xFF000000), // Black - Used for urgent or important tasks
+    Color(0xFF212121), // Very Dark Gray - Used for development tasks
+    Color(0xFF424242), // Dark Gray - Used for planning tasks
+    Color(0xFF616161), // Medium Dark Gray - Used for research tasks
+    Color(0xFF757575), // Medium Gray - Used for in-progress or pending tasks
+    Color(0xFF9E9E9E), // Light Gray - Used for documentation tasks
+    Color(0xFF424242), // Dark Gray - Used for design tasks
+    Color(0xFF757575), // Medium Gray - Used for miscellaneous tasks
   ];
 
   /// Returns a color from the workTypeColors array based on the work type

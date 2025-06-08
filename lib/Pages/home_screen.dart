@@ -34,11 +34,11 @@ class _HomePageState extends State<HomePage>
 
   // Collection of motivational quotes displayed daily
   final List<String> dailyQuotes = [
-    "Every expert was once a beginner. 🌟",
-    "Progress, not perfection. 💪",
-    "Your potential is endless. 🚀",
-    "Great things take time. ⏰",
-    "Believe in your journey. ✨"
+    "Every expert was once a beginner. ",
+    "Progress, not perfection. ",
+    "Your potential is endless. ",
+    "Great things take time. ",
+    "Believe in your journey. "
   ];
 
   @override
@@ -279,7 +279,7 @@ class _HomePageState extends State<HomePage>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Text(
-                      '🎯 Ready to track your amazing work today?',
+                      ' Ready to track your amazing work today?',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,

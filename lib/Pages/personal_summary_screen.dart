@@ -135,14 +135,13 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
+        decoration: const BoxDecoration(          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF667eea),
-              Color(0xFF764ba2),
-              Color(0xFF6B73FF),
+              Color(0xFF000000),
+              Color(0xFF424242),
+              Color(0xFF212121),
             ],
           ),
         ),
@@ -197,13 +196,12 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
           ),
           const SizedBox(height: 20),
           Row(
-            children: [
-              Expanded(
+            children: [              Expanded(
                 child: _buildStatCard(
                   'Total Hours',
                   totalHours.toStringAsFixed(1),
                   Icons.access_time,
-                  Colors.blue,
+                  Colors.white,
                 ),
               ),
               const SizedBox(width: 15),
@@ -212,7 +210,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
                   'Average Daily',
                   avgHours.toStringAsFixed(1),
                   Icons.trending_up,
-                  Colors.green,
+                  Colors.grey,
                 ),
               ),
               const SizedBox(width: 15),
@@ -221,7 +219,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
                   'Entries',
                   _entries.length.toString(),
                   Icons.list_alt,
-                  Colors.orange,
+                  Colors.black,
                 ),
               ),
             ],

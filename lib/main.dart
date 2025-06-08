@@ -12,18 +12,17 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Intern Progress Tracker',
-      debugShowCheckedModeBanner: false,      theme: ThemeData(
-        primarySwatch: MaterialColor(0xFF007BFF, {
-          50: Color(0xFFE3F2FD),
-          100: Color(0xFFBBDEFB),
-          200: Color(0xFF90CAF9),
-          300: Color(0xFF64B5F6),
-          400: Color(0xFF42A5F5),
-          500: Color(0xFF007BFF),
-          600: Color(0xFF1E88E5),
-          700: Color(0xFF1976D2),
-          800: Color(0xFF1565C0),
-          900: Color(0xFF0D47A1),
+      debugShowCheckedModeBanner: false,      theme: ThemeData(        primarySwatch: MaterialColor(0xFF000000, {
+          50: Color(0xFFE0E0E0),
+          100: Color(0xFFBDBDBD),
+          200: Color(0xFF9E9E9E),
+          300: Color(0xFF757575),
+          400: Color(0xFF616161),
+          500: Color(0xFF000000),
+          600: Color(0xFF424242),
+          700: Color(0xFF303030),
+          800: Color(0xFF212121),
+          900: Color(0xFF000000),
         }),
         primaryColor: AppColors.primaryRoyalBlue,
         colorScheme: ColorScheme.light(
