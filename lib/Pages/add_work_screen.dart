@@ -113,18 +113,18 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
     _descriptionController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(        decoration: const BoxDecoration(
+      body: Container(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.primaryDeepCyan,
-              AppColors.secondaryTeal,
-              Color(0xFF2C9BA0),
+              AppColors.primaryRoyalBlue,
+              AppColors.secondaryCoralOrange,
+              Color(0xFF2D2D2D),
             ],
             stops: [0.0, 0.5, 1.0],
           ),
@@ -152,14 +152,13 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       ),
     );
   }
-
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           Material(
-            color: Colors.white.withOpacity(0.2),
+            color: AppColors.cardBackground.withOpacity(0.3),
             borderRadius: BorderRadius.circular(12),
             child: InkWell(
               onTap: () => Navigator.pop(context),
@@ -170,16 +169,16 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_ios_new,
-                  color: Colors.white,
+                  color: AppColors.buttonText,
                   size: 20,
                 ),
               ),
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -188,14 +187,14 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.buttonText,
                   ),
                 ),
                 Text(
                   'Track your daily progress',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white70,
+                    color: AppColors.buttonText.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -210,15 +209,14 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
   /// description, and file attachment
   Widget _buildForm() {
     return ScaleTransition(
-      scale: _scaleAnimation,
-      child: Container(
+      scale: _scaleAnimation,      child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: AppColors.textSecondary.withOpacity(0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -260,19 +258,17 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       ),
     );
   }
-
   /// Creates a styled section header with an emoji icon
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF2D3748),
+        color: AppColors.textPrimary,
       ),
     );
   }
-
   /// Builds a custom date picker field with calendar icon
   Widget _buildDatePicker() {
     return Material(
@@ -283,9 +279,9 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: AppColors.textSecondary.withOpacity(0.3)),
             borderRadius: BorderRadius.circular(12),
-            color: Colors.grey.shade50,
+            color: const Color(0xFF2D2D2D),
           ),
           child: Row(
             children: [
@@ -293,12 +289,12 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF667eea).withOpacity(0.1),
+                  color: AppColors.primaryRoyalBlue.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.calendar_today,
-                  color: Color(0xFF667eea),
+                  color: AppColors.primaryRoyalBlue,
                   size: 20,
                 ),
               ),
@@ -307,11 +303,11 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Select Date',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -322,8 +318,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                       style: TextStyle(
                         fontSize: 16,
                         color: _selectedDate != null 
-                            ? const Color(0xFF2D3748)
-                            : Colors.grey.shade600,
+                            ? AppColors.buttonText
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -332,7 +328,7 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
               ),
               Icon(
                 Icons.arrow_forward_ios,
-                color: Colors.grey.shade400,
+                color: AppColors.textSecondary,
                 size: 16,
               ),
             ],
@@ -341,38 +337,44 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       ),
     );
   }
-
   /// Builds the work title input field with validation
   Widget _buildTitleField() {
     return TextFormField(
       controller: _titleController,
+      style: TextStyle(color: AppColors.buttonText),
       decoration: InputDecoration(
         labelText: 'Work Title',
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         hintText: 'Enter your work title',
+        hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.7)),
         prefixIcon: Container(
           margin: const EdgeInsets.all(12),
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: const Color(0xFF4FC3F7).withOpacity(0.1),
+            color: AppColors.primaryRoyalBlue.withOpacity(0.2),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.work_outline,
-            color: Color(0xFF4FC3F7),
+            color: AppColors.primaryRoyalBlue,
             size: 16,
           ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+          borderSide: BorderSide(color: AppColors.primaryRoyalBlue, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: const Color(0xFF2D2D2D),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -385,43 +387,53 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       },
     );
   }
-
   /// Builds the work type dropdown with custom styling
   Widget _buildWorkTypeDropdown() {
     return DropdownButtonFormField<String>(
       value: _selectedWorkType,
+      style: TextStyle(color: AppColors.buttonText),
+      dropdownColor: const Color(0xFF2D2D2D),
       decoration: InputDecoration(
         labelText: 'Work Type',
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         hintText: 'Select work category',
+        hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.7)),
         prefixIcon: Container(
           margin: const EdgeInsets.all(12),
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: const Color(0xFF66BB6A).withOpacity(0.1),
+            color: AppColors.secondaryCoralOrange.withOpacity(0.2),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.category_outlined,
-            color: Color(0xFF66BB6A),
+            color: AppColors.secondaryCoralOrange,
             size: 16,
           ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+          borderSide: BorderSide(color: AppColors.primaryRoyalBlue, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: const Color(0xFF2D2D2D),
       ),
       items: _workTypes.map((String type) {
         return DropdownMenuItem<String>(
           value: type,
-          child: Text(type),
+          child: Text(
+            type,
+            style: TextStyle(color: AppColors.buttonText),
+          ),
         );
       }).toList(),
       onChanged: (String? newValue) {
@@ -437,44 +449,51 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       },
     );
   }
-
   /// Builds the hours worked input field with validation
   /// Accepts decimal values between 0.1 and 24
   Widget _buildHoursField() {
     return TextFormField(
       controller: _hoursController,
+      style: TextStyle(color: AppColors.buttonText),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
       ],
       decoration: InputDecoration(
         labelText: 'Hours Worked',
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         hintText: 'Enter hours (0-24)',
+        hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.7)),
         suffixText: 'hrs',
+        suffixStyle: TextStyle(color: AppColors.textSecondary),
         prefixIcon: Container(
           margin: const EdgeInsets.all(12),
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: const Color(0xFFFF7043).withOpacity(0.1),
+            color: AppColors.secondaryCoralOrange.withOpacity(0.2),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.access_time,
-            color: Color(0xFFFF7043),
+            color: AppColors.secondaryCoralOrange,
             size: 16,
           ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+          borderSide: BorderSide(color: AppColors.primaryRoyalBlue, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: const Color(0xFF2D2D2D),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -491,40 +510,46 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       },
     );
   }
-
   /// Builds a multi-line description field with validation
   Widget _buildDescriptionField() {
     return TextFormField(
       controller: _descriptionController,
+      style: TextStyle(color: AppColors.buttonText),
       maxLines: 4,
       decoration: InputDecoration(
         labelText: 'Description',
+        labelStyle: TextStyle(color: AppColors.textSecondary),
         hintText: 'Describe what you worked on...',
+        hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.7)),
         alignLabelWithHint: true,
         prefixIcon: Container(
           margin: const EdgeInsets.only(top: 12, left: 12, right: 12),
           width: 20,
           height: 20,
           decoration: BoxDecoration(
-            color: const Color(0xFF9C27B0).withOpacity(0.1),
+            color: AppColors.primaryRoyalBlue.withOpacity(0.2),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: const Icon(
+          child: Icon(
             Icons.description_outlined,
-            color: Color(0xFF9C27B0),
+            color: AppColors.primaryRoyalBlue,
             size: 16,
           ),
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.textSecondary.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF667eea), width: 2),
+          borderSide: BorderSide(color: AppColors.primaryRoyalBlue, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: const Color(0xFF2D2D2D),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -537,7 +562,6 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       },
     );
   }
-
   /// Builds the file upload section with preview and clear functionality
   Widget _buildFileUpload() {
     return Material(
@@ -549,13 +573,13 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(
-              color: _selectedFile != null ? const Color(0xFF667eea) : Colors.grey.shade300,
+              color: _selectedFile != null ? AppColors.primaryRoyalBlue : AppColors.textSecondary.withOpacity(0.3),
               width: _selectedFile != null ? 2 : 1,
             ),
             borderRadius: BorderRadius.circular(12),
             color: _selectedFile != null 
-                ? const Color(0xFF667eea).withOpacity(0.05)
-                : Colors.grey.shade50,
+                ? AppColors.primaryRoyalBlue.withOpacity(0.1)
+                : const Color(0xFF2D2D2D),
           ),
           child: Row(
             children: [
@@ -563,12 +587,12 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF667eea).withOpacity(0.1),
+                  color: AppColors.primaryRoyalBlue.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   _selectedFile != null ? Icons.check_circle : Icons.attach_file,
-                  color: const Color(0xFF667eea),
+                  color: AppColors.primaryRoyalBlue,
                   size: 20,
                 ),
               ),
@@ -582,8 +606,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                       style: TextStyle(
                         fontSize: 12,
                         color: _selectedFile != null 
-                            ? const Color(0xFF667eea) 
-                            : Colors.grey,
+                            ? AppColors.primaryRoyalBlue 
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -594,8 +618,8 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                       style: TextStyle(
                         fontSize: 16,
                         color: _selectedFile != null 
-                            ? const Color(0xFF2D3748)
-                            : Colors.grey.shade600,
+                            ? AppColors.buttonText
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -609,9 +633,9 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                       _selectedFile = null;
                     });
                   },
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close,
-                    color: Colors.grey,
+                    color: AppColors.textSecondary,
                     size: 18,
                   ),
                 ),
@@ -621,7 +645,6 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       ),
     );
   }
-
   /// Builds an animated submit button that shows loading state
   Widget _buildSubmitButton() {
     return AnimatedContainer(
@@ -630,10 +653,10 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       child: ElevatedButton(
         onPressed: _isSubmitting ? null : _submitForm,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF667eea),
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primaryRoyalBlue,
+          foregroundColor: AppColors.buttonText,
           elevation: _isSubmitting ? 0 : 8,
-          shadowColor: const Color(0xFF667eea).withOpacity(0.3),
+          shadowColor: AppColors.primaryRoyalBlue.withOpacity(0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -648,30 +671,32 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(
-                        Colors.white.withOpacity(0.7),
+                        AppColors.buttonText.withOpacity(0.7),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Submitting...',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.buttonText,
                     ),
                   ),
                 ],
               )
-            : const Row(
+            : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.send, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.send, size: 20, color: AppColors.buttonText),
+                  const SizedBox(width: 8),
                   Text(
                     'Submit Work Entry',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.buttonText,
                     ),
                   ),
                 ],
@@ -679,7 +704,6 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       ),
     );
   }
-
   /// Shows date picker dialog and handles date selection
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
@@ -690,12 +714,15 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF667eea),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF2D3748),
+            colorScheme: ColorScheme.dark(
+              primary: AppColors.primaryRoyalBlue,
+              onPrimary: AppColors.buttonText,
+              surface: const Color(0xFF2D2D2D),
+              onSurface: AppColors.buttonText,
+              background: const Color(0xFF1E1E1E),
+              onBackground: AppColors.buttonText,
             ),
+            dialogBackgroundColor: const Color(0xFF2D2D2D),
           ),
           child: child!,
         );
@@ -731,13 +758,15 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       HapticFeedback.lightImpact();
     }
     */
-    
-    // Simulation for demo
+      // Simulation for demo
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('File picker would open here'),
-        backgroundColor: const Color(0xFF667eea),
+        content: Text(
+          'File picker would open here',
+          style: TextStyle(color: AppColors.buttonText),
+        ),
+        backgroundColor: AppColors.primaryRoyalBlue,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
@@ -751,13 +780,14 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) {
       return;
-    }
-
-    if (_selectedDate == null) {
+    }    if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Please select a date'),
-          backgroundColor: Colors.red,
+          content: Text(
+            'Please select a date',
+            style: TextStyle(color: AppColors.buttonText),
+          ),
+          backgroundColor: AppColors.secondaryCoralOrange,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -796,18 +826,19 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
       // Submit to Firebase
       // await FirebaseFirestore.instance
       //     .collection('workEntries')
-      //     .add(workEntry);
-
-      // Show success message
+      //     .add(workEntry);      // Show success message
       if (mounted) {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
-                Text('Work entry submitted successfully!'),
+                Icon(Icons.check_circle, color: AppColors.buttonText),
+                const SizedBox(width: 8),
+                Text(
+                  'Work entry submitted successfully!',
+                  style: TextStyle(color: AppColors.buttonText),
+                ),
               ],
             ),
             backgroundColor: const Color(0xFF66BB6A),
@@ -822,13 +853,15 @@ class _AddWorkEntryPageState extends State<AddWorkEntryPage>
         // Clear the form
         _clearForm();
       }
-    } catch (e) {
-      // Show error message
+    } catch (e) {      // Show error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error submitting work entry: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text(
+              'Error submitting work entry: ${e.toString()}',
+              style: TextStyle(color: AppColors.buttonText),
+            ),
+            backgroundColor: AppColors.secondaryCoralOrange,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

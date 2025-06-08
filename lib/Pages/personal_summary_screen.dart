@@ -345,7 +345,6 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
       ),
     );
   }
-
   // Build work type filter dropdown
   Widget _buildWorkTypeFilter() {
     return Container(
@@ -361,6 +360,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedWorkType ?? 'All Types',
+          isExpanded: true,
           icon: Icon(
             Icons.arrow_drop_down,
             color: Colors.white.withOpacity(0.9),
@@ -373,7 +373,10 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
           items: _workTypes.map((String type) {
             return DropdownMenuItem<String>(
               value: type,
-              child: Text(type),
+              child: Text(
+                type,
+                overflow: TextOverflow.ellipsis,
+              ),
             );
           }).toList(),
           onChanged: (String? newValue) {
@@ -531,8 +534,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        children: [          Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -547,12 +549,15 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Hours per Day',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3436),
+              Expanded(
+                child: const Text(
+                  'Hours per Day',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3436),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -663,8 +668,7 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        children: [          Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
@@ -679,12 +683,15 @@ class _PersonalSummaryScreenState extends State<PersonalSummaryScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Work Type Split',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3436),
+              Expanded(
+                child: const Text(
+                  'Work Type Split',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3436),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
