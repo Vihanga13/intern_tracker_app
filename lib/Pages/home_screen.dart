@@ -318,10 +318,8 @@ class _HomePageState extends State<HomePage>
         'icon': Icons.supervisor_account_outlined,
         'title': 'Supervisor Dashboard',
         'subtitle': 'Manage team tasks',
-        'color': AppColors.secondaryCoralOrange,
-        'gradient': const LinearGradient(
-          colors: [Color(0xFFFF6B35), Color(0xFFE74C3C)],
-        ),
+       'color': AppColors.secondaryCoralOrange,
+        'gradient': AppColors.secondaryGradient,
       },
     ];
 

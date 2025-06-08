@@ -198,7 +198,11 @@ class _DropdownSearchState extends State<DropdownSearch> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        gradient: LinearGradient(
+          colors: [AppColors.cardBackground, AppColors.cardBackground],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.textSecondary.withOpacity(0.3)),
         boxShadow: [
@@ -306,12 +310,16 @@ class StatsCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textSecondary.withOpacity(0.1),
+            color: color.withOpacity(0.1),
             blurRadius: 15,
             offset: Offset(0, 5),
           ),
@@ -343,7 +351,7 @@ class StatsCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: Colors.grey.shade700,
             ),
           ),
         ],
@@ -370,12 +378,14 @@ class ProgressChart extends StatelessWidget {
     for (int i = 0; i < sortedEntries.length; i++) {
       cumulativeHours += sortedEntries[i].hours;
       spots.add(FlSpot(i.toDouble(), cumulativeHours));
-    }
-
-    return Container(
+    }    return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        gradient: LinearGradient(
+          colors: [AppColors.cardBackground, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -412,12 +422,12 @@ class ProgressChart extends StatelessWidget {
                         LineChartBarData(
                           spots: spots,
                           isCurved: true,
-                          color: AppColors.secondaryCoralOrange,
+                          color: AppColors.textPrimary,
                           barWidth: 4,
                           dotData: FlDotData(show: true),
                           belowBarData: BarAreaData(
                             show: true,
-                            color: AppColors.secondaryCoralOrange.withOpacity(0.3),
+                            color: AppColors.textSecondary.withOpacity(0.3),
                           ),
                         ),
                       ],
@@ -431,7 +441,7 @@ class ProgressChart extends StatelessWidget {
                               if (value.toInt() >= 0 && value.toInt() < sortedEntries.length) {
                                 return Text(
                                   '${sortedEntries[value.toInt()].date.day}/${sortedEntries[value.toInt()].date.month}',
-                                  style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                  style: TextStyle(fontSize: 10),
                                 );
                               }
                               return Text('');
@@ -442,13 +452,13 @@ class ProgressChart extends StatelessWidget {
                           sideTitles: SideTitles(
                             showTitles: true,
                             getTitlesWidget: (value, meta) {
-                              return Text('${value.toInt()}h', style: TextStyle(fontSize: 10, color: AppColors.textSecondary));
+                              return Text('${value.toInt()}h', style: TextStyle(fontSize: 10));
                             },
                           ),
                         ),
                       ),
-                      gridData: FlGridData(show: true, drawHorizontalLine: true, drawVerticalLine: true),
-                      borderData: FlBorderData(show: true, border: Border.all(color: AppColors.textSecondary.withOpacity(0.3))),
+                      gridData: FlGridData(show: true),
+                      borderData: FlBorderData(show: true),
                     ),
                   ),
           ),
@@ -500,19 +510,16 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
       setState(() => isLoading = false);
     }
   }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundLight,
-      appBar: AppBar(
+  Widget build(BuildContext context) {    return Scaffold(
+      backgroundColor: AppColors.backgroundLight,      appBar: AppBar(
         title: Text('Supervisor Dashboard', style: TextStyle(color: AppColors.buttonText)),
         backgroundColor: AppColors.primaryRoyalBlue,
         elevation: 0,
         actions: [
           IconButton(
             onPressed: loadDashboardData,
-            icon: Icon(Icons.refresh, color: AppColors.buttonText),
+            icon: Icon(Icons.refresh, color: Colors.white),
           ),
         ],
       ),
@@ -521,15 +528,14 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(color: AppColors.secondaryCoralOrange),
+                  CircularProgressIndicator(),
                   SizedBox(height: 16),
-                  Text('Loading Dashboard...', style: TextStyle(color: AppColors.textPrimary)),
+                  Text('Loading Dashboard...'),
                 ],
               ),
             )
           : RefreshIndicator(
               onRefresh: loadDashboardData,
-              color: AppColors.secondaryCoralOrange,
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -541,7 +547,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: Colors.grey.shade800,
                       ),
                     ),
                     SizedBox(height: 16),
@@ -552,18 +558,17 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       crossAxisSpacing: 16,
                       mainAxisSpacing: 16,
                       childAspectRatio: 1.2,
-                      children: [
-                        StatsCard(
+                      children: [                        StatsCard(
                           title: 'Total Interns',
                           value: '${allInterns.length}',
                           icon: Icons.people,
-                          color: AppColors.workTypeColors[0],
+                          color: Colors.black,
                         ),
                         StatsCard(
                           title: 'Total Hours',
                           value: '${allInterns.fold(0.0, (sum, intern) => sum + intern.totalHours).toStringAsFixed(0)}',
                           icon: Icons.access_time,
-                          color: AppColors.workTypeColors[1],
+                          color: Colors.grey.shade700,
                         ),
                         StatsCard(
                           title: 'Average Hours',
@@ -571,13 +576,13 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                               ? '${(allInterns.fold(0.0, (sum, intern) => sum + intern.totalHours) / allInterns.length).toStringAsFixed(1)}'
                               : '0',
                           icon: Icons.trending_up,
-                          color: AppColors.workTypeColors[2],
+                          color: Colors.grey.shade600,
                         ),
                         StatsCard(
                           title: 'Active Interns',
                           value: '${allInterns.where((intern) => intern.lastUpdated.isAfter(DateTime.now().subtract(Duration(days: 7)))).length}',
                           icon: Icons.schedule,
-                          color: AppColors.workTypeColors[3],
+                          color: Colors.grey.shade800,
                         ),
                       ],
                     ),
@@ -590,7 +595,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: Colors.grey.shade800,
                       ),
                     ),
                     SizedBox(height: 16),
@@ -613,36 +618,35 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Colors.grey.shade800,
                         ),
                       ),
                       SizedBox(height: 16),
                       Container(
                         padding: EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: AppColors.cardBackground,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.textSecondary.withOpacity(0.1),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 10,
                               offset: Offset(0, 2),
                             ),
                           ],
                         ),
                         child: Column(
-                          children: [
-                            Row(
+                          children: [                            Row(
                               children: [
                                 CircleAvatar(
                                   radius: 30,
-                                  backgroundColor: AppColors.secondaryCoralOrange,
+                                  backgroundColor: AppColors.cardBackground,
                                   child: Text(
                                     selectedIntern!.name.substring(0, 1).toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.buttonText,
+                                      color: AppColors.textPrimary,
                                     ),
                                   ),
                                 ),
@@ -656,13 +660,12 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
-                                          color: AppColors.textPrimary,
                                         ),
                                       ),
                                       Text(
                                         selectedIntern!.email,
                                         style: TextStyle(
-                                          color: AppColors.textSecondary,
+                                          color: Colors.grey.shade600,
                                         ),
                                       ),
                                     ],
@@ -670,8 +673,7 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                                 ),
                               ],
                             ),
-                            SizedBox(height: 20),
-                            Row(
+                            SizedBox(height: 20),                            Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 Column(
@@ -681,10 +683,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.workTypeColors[0],
+                                        color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    Text('Total Hours', style: TextStyle(color: AppColors.textSecondary)),
+                                    Text('Total Hours'),
                                   ],
                                 ),
                                 Column(
@@ -694,10 +696,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.workTypeColors[1],
+                                        color: AppColors.secondaryCoralOrange,
                                       ),
                                     ),
-                                    Text('Average', style: TextStyle(color: AppColors.textSecondary)),
+                                    Text('Average'),
                                   ],
                                 ),
                                 Column(
@@ -707,10 +709,10 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.workTypeColors[2],
+                                        color: AppColors.textSecondary,
                                       ),
                                     ),
-                                    Text('Last Updated', style: TextStyle(color: AppColors.textSecondary)),
+                                    Text('Last Updated'),
                                   ],
                                 ),
                               ],
@@ -731,17 +733,17 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: Colors.grey.shade800,
                       ),
                     ),
                     SizedBox(height: 16),
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.cardBackground,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.textSecondary.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.1),
                             blurRadius: 10,
                             offset: Offset(0, 2),
                           ),
@@ -750,8 +752,6 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          dataTextStyle: TextStyle(color: AppColors.textPrimary),
-                          headingTextStyle: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                           columns: [
                             DataColumn(label: Text('Name')),
                             DataColumn(label: Text('Total Hours')),
@@ -760,31 +760,30 @@ class _SupervisorDashboardScreenState extends State<SupervisorDashboardScreen> {
                           ],
                           rows: allInterns.map((intern) {
                             return DataRow(
-                              cells: [
-                                DataCell(
+                              cells: [                                DataCell(
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       CircleAvatar(
                                         radius: 16,
-                                        backgroundColor: AppColors.secondaryCoralOrange,
+                                        backgroundColor: AppColors.cardBackground,
                                         child: Text(
                                           intern.name.substring(0, 1).toUpperCase(),
                                           style: TextStyle(
-                                            color: AppColors.buttonText,
+                                            color: AppColors.textPrimary,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
                                         ),
                                       ),
                                       SizedBox(width: 8),
-                                      Text(intern.name, style: TextStyle(color: AppColors.textPrimary)),
+                                      Text(intern.name),
                                     ],
                                   ),
                                 ),
-                                DataCell(Text('${intern.totalHours.toStringAsFixed(1)}h', style: TextStyle(color: AppColors.textPrimary))),
-                                DataCell(Text('${intern.averageHours.toStringAsFixed(1)}h', style: TextStyle(color: AppColors.textPrimary))),
-                                DataCell(Text('${intern.lastUpdated.day}/${intern.lastUpdated.month}', style: TextStyle(color: AppColors.textPrimary))),
+                                DataCell(Text('${intern.totalHours.toStringAsFixed(1)}h')),
+                                DataCell(Text('${intern.averageHours.toStringAsFixed(1)}h')),
+                                DataCell(Text('${intern.lastUpdated.day}/${intern.lastUpdated.month}')),
                               ],
                             );
                           }).toList(),

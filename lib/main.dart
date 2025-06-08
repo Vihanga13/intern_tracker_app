@@ -12,21 +12,21 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Intern Progress Tracker',
-      debugShowCheckedModeBanner: false,      theme: ThemeData(        primarySwatch: MaterialColor(0xFF000000, {
-          50: Color(0xFFE0E0E0),
-          100: Color(0xFFBDBDBD),
-          200: Color(0xFF9E9E9E),
-          300: Color(0xFF757575),
-          400: Color(0xFF616161),
-          500: Color(0xFF000000),
-          600: Color(0xFF424242),
-          700: Color(0xFF303030),
-          800: Color(0xFF212121),
-          900: Color(0xFF000000),
+      debugShowCheckedModeBanner: false,      theme: ThemeData(        primarySwatch: MaterialColor(0xFF1E1E1E, {
+          50: Color(0xFF4A4A4A),
+          100: Color(0xFF3E3E3E),
+          200: Color(0xFF333333),
+          300: Color(0xFF2D2D2D),
+          400: Color(0xFF252525),
+          500: Color(0xFF1E1E1E),
+          600: Color(0xFF1A1A1A),
+          700: Color(0xFF151515),
+          800: Color(0xFF101010),
+          900: Color(0xFF0A0A0A),
         }),
         primaryColor: AppColors.primaryRoyalBlue,
-        colorScheme: ColorScheme.light(
-          primary: AppColors.primaryRoyalBlue,
+        colorScheme: ColorScheme.dark(
+          primary: AppColors.secondaryCoralOrange,
           secondary: AppColors.secondaryCoralOrange,
           surface: AppColors.cardBackground,
           background: AppColors.backgroundLight,
@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
           onBackground: AppColors.textPrimary,
           onError: AppColors.buttonText,
         ),
-        brightness: Brightness.light,
+        brightness: Brightness.dark,
         fontFamily: 'SF Pro Display',
         appBarTheme: AppBarTheme(
           backgroundColor: AppColors.primaryRoyalBlue,
