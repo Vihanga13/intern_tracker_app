@@ -358,13 +358,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               _rememberMe = value ?? false;
             });
           },
-          activeColor: AppColors.primaryRoyalBlue,
+          activeColor: Colors.black,
           checkColor: Colors.white,
+          side: BorderSide(color: Colors.black, width: 2),
         ),
         Text(
           'Remember me',
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: Colors.black,
             fontSize: 14,
           ),
         ),

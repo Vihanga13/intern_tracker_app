@@ -680,6 +680,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
           },
           activeColor: AppColors.primaryRoyalBlue,
           checkColor: Colors.white,
+          side: BorderSide(color: Colors.black, width: 2),
         ),
         Expanded(
           child: GestureDetector(
