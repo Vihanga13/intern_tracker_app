@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'Pages/home_screen.dart';
+import 'Pages/login_screen.dart';
 import 'utils/app_colors.dart';
 
 void main() {
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: AppColors.backgroundLight,
       ),
-      home: const HomePage(),
+      home: const LoginScreen(),
     );
   }
 }
